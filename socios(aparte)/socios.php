@@ -13,7 +13,7 @@ $stmt = $pdo->query($sql);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Listado de Socios</title>
-    <link rel="stylesheet" href="socios.css"> <!-- Enlace al archivo CSS -->
+    <link rel="stylesheet" href="estilos/socios.css"> <!-- Enlace al archivo CSS -->
 </head>
 <body>
 

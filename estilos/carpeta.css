@@ -1,0 +1,144 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(to bottom right, #eaf0f6, #dce3ec);
+    margin: 0;
+    padding: 0;
+    color: #333;
+}
+
+header {
+    background-color: #2f3f54;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 2rem;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.logo img {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+main {
+    padding: 2rem;
+    max-width: 1000px;
+    margin: auto;
+}
+
+.contenedor-archivos {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* Máximo de 4 archivos por fila */
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.archivo {
+    position: relative;
+    background: #fff;
+    border-radius: 25px; /* Cápsula */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    padding: 1.5rem;
+    transition: transform 0.2s, box-shadow 0.3s ease;
+    border: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.archivo:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+}
+
+/* Estilo para archivo seleccionado */
+.archivo.selected {
+    border: 2px solid #3498db;
+    background-color: #ecf6fc;
+}
+
+.archivo .icono {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 15px;
+    border-radius: 50%;
+    transition: transform 0.2s;
+}
+
+.archivo a {
+    display: block;
+    text-decoration: none;
+    color: #34495e;
+    font-weight: 600;
+    text-align: center;
+}
+
+.archivo a:hover {
+    color: #2980b9;
+}
+
+.archivo p {
+    margin-top: 10px;
+    font-size: 1rem;
+    color: #333;
+    word-wrap: break-word;
+}
+
+.eliminar-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s;
+    display: none;
+}
+
+.eliminar-btn:hover {
+    background-color: #c0392b;
+}
+
+.subir {
+    margin-top: 2rem;
+    background: #fff;
+    padding: 1rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.subir button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.subir button:hover {
+    background-color: #2980b9;
+}
+
+footer {
+    text-align: center;
+    padding: 1rem;
+    background-color: #2f3f54;
+    color: white;
+}

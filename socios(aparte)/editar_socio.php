@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Socio</title>
-    <link rel="stylesheet" href="editar_socio.css"> <!-- Enlace al archivo CSS -->
+    <link rel="stylesheet" href="estilos/editarSocio.css"> <!-- Enlace al archivo CSS -->
 </head>
 <body>
 
