@@ -1,0 +1,68 @@
+/* Imagen de fondo full screen con opacidad y blur */
+.background-image {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  background: url('../images/consejofuera.png') no-repeat center center;
+  background-size: cover;
+  filter: brightness(0.5) blur(3px);
+  z-index: -1;  
+}
+
+/* Ajustamos el contenedor de login para centrarlo */
+.custom-login-box {
+  margin-top: 200px; /* puedes ajustar este valor */
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 30px 40px;
+  border-radius: 8px;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.25);
+  color: #333;
+  font-family: 'Source Sans Pro', sans-serif;
+}
+
+
+/* Input más grande y con más padding */
+.input-lg {
+  padding: 15px 12px;
+  font-size: 1.15rem;
+}
+
+/* Botón más grande y moderno */
+.btn-lg {
+  font-size: 1.15rem;
+  font-weight: 600;
+  padding: 12px 20px;
+  border-radius: 5px;
+}
+
+/* Iconos dentro del input con más tamaño */
+.form-control-feedback {
+  font-size: 18px;
+  line-height: 38px;
+}
+
+/* Link a home */
+a.text-center {
+  display: block;
+  text-align: center;
+  font-weight: 600;
+  color: #337ab7;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a.text-center:hover {
+  color: #23527c;
+}
+
+/* Alertas de error y éxito con Bootstrap */
+.alert {
+  padding: 12px 20px;
+  border-radius: 5px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
