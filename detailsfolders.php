@@ -1,16 +1,40 @@
 <?php
 // Inicio: Lógica de descarga ANTES de cualquier salida o include
 
-$base_dir = realpath('folders');
 $folder = isset($_GET['folder']) ? $_GET['folder'] : '';
 $folder = trim($folder, '/\\');
-$target_path = realpath($base_dir . DIRECTORY_SEPARATOR . $folder);
 
-// Validación básica
-if (!$target_path || strpos($target_path, $base_dir) !== 0) {
-    die("Acceso no permitido.");
+// Determinar base_dir y target_path según prefijo
+if (strpos($folder, 'uploads/') === 0) {
+    $base_dir = realpath(__DIR__ . '/uploads');
+    $folder_subpath = substr($folder, strlen('uploads/'));
+    $target_path = realpath($base_dir . DIRECTORY_SEPARATOR . $folder_subpath);
+} elseif (strpos($folder, 'trash/') === 0) {
+    $base_dir = realpath(__DIR__ . '/trash');
+    $folder_subpath = substr($folder, strlen('trash/'));
+    $target_path = realpath($base_dir . DIRECTORY_SEPARATOR . $folder_subpath);
+} else {
+    // Carpeta normal en 'folders'
+    $base_dir = realpath(__DIR__ . '/folders');
+    $folder_subpath = $folder;
+    $target_path = realpath($base_dir . DIRECTORY_SEPARATOR . $folder_subpath);
 }
 
+// Verificar rutas válidas
+if (!$base_dir || !$target_path) {
+    die("Acceso no permitido: ruta base o carpeta no encontrada.");
+}
+
+// Normalizar sin barra final
+$base_dir = rtrim($base_dir, DIRECTORY_SEPARATOR);
+$target_path = rtrim($target_path, DIRECTORY_SEPARATOR);
+
+// Comprobar que $target_path está dentro de $base_dir para seguridad
+if (strncmp($target_path, $base_dir, strlen($base_dir)) !== 0) {
+    die("Acceso no permitido: ruta fuera de base.");
+}
+
+// Descarga de archivo
 if (isset($_GET['download'])) {
     $file_to_download = basename($_GET['download']);
     $file_path = $target_path . DIRECTORY_SEPARATOR . $file_to_download;
@@ -34,7 +58,6 @@ if (isset($_GET['download'])) {
 
 // --- Fin lógica descarga ---
 
-// Ahora sí incluir archivos que pueden generar salida:
 include 'includes/session.php';
 include 'includes/header.php';
 include 'includes/navbar.php';
@@ -79,8 +102,11 @@ if (isset($_POST['new_folder']) && !empty($_POST['folder_name'])) {
     $new_folder = basename($_POST['folder_name']);
     $new_folder_path = $target_path . DIRECTORY_SEPARATOR . $new_folder;
     if (!file_exists($new_folder_path)) {
-        mkdir($new_folder_path, 0755, true);
-        $msg = "Carpeta <strong>$new_folder</strong> creada exitosamente.";
+        if (mkdir($new_folder_path, 0755, true)) {
+            $msg = "Carpeta <strong>$new_folder</strong> creada exitosamente.";
+        } else {
+            $msg_error = "Error al crear la carpeta.";
+        }
     } else {
         $msg_error = "La carpeta <strong>$new_folder</strong> ya existe.";
     }
@@ -127,7 +153,7 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
       border-radius: 15px;
       box-shadow: 0 8px 16px rgba(0,0,0,0.08);
       text-align: center;
-      padding: 20px 10px 50px 10px; /* espacio abajo para botones */
+      padding: 20px 10px 50px 10px;
       overflow: hidden;
       position: relative;
       word-break: break-word;
@@ -169,22 +195,32 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
       justify-content: center;
       gap: 10px;
     }
+    /* Botón eliminar simplificado */
     .action-buttons a {
+      background-color: #e74c3c;
+      border: none;
+      color: white;
+      width: 36px;
+      height: 36px;
       font-size: 18px;
-      color: #555;
-      text-decoration: none;
-      padding: 4px 8px;
-      border-radius: 4px;
-      border: 1px solid transparent;
-      transition: all 0.2s ease;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+      transition: background-color 0.3s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      text-decoration: none;
+      padding: 0;
     }
     .action-buttons a:hover {
-      border-color: #2980b9;
-      color: #2980b9;
+      background-color: #c0392b;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.2);
     }
+    .action-buttons a .glyphicon {
+      margin: 0; /* quitar margen para centrar icono */
+      font-size: 18px;
+    }
+
     .breadcrumb {
       background: none;
       padding-left: 0;
@@ -250,12 +286,10 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
       $is_dir = is_dir($full_path);
       $type_class = $is_dir ? 'folder' : 'file';
 
-      // Link para carpeta: navegar
       if ($is_dir) {
         $link = 'detailsfolders.php?folder=' . urlencode(($folder ? $folder . '/' : '') . $item);
         $name_link = '<a href="' . $link . '">' . htmlspecialchars($item) . '</a>';
       } else {
-        // Link para descarga
         $link = 'detailsfolders.php?folder=' . urlencode($folder) . '&download=' . urlencode($item);
         $name_link = '<a href="' . $link . '">' . htmlspecialchars($item) . '</a>';
       }
@@ -263,13 +297,11 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
       echo '<div class="item-box ' . $type_class . '">';
       echo '<div class="item-icon"><span class="glyphicon ' . ($is_dir ? 'glyphicon-folder-close' : 'glyphicon-file') . '"></span></div>';
       echo '<div class="item-name">' . $name_link . '</div>';
-
       echo '<div class="action-buttons">';
       echo '<a href="detailsfolders.php?folder=' . urlencode($folder) . '&delete=' . urlencode($item) . '&type=' . ($is_dir ? 'folder' : 'file') . '" onclick="return confirm(\'¿Estás seguro que deseas eliminar ' . htmlspecialchars($item) . '?\');" title="Eliminar">';
       echo '<span class="glyphicon glyphicon-trash"></span>';
       echo '</a>';
       echo '</div>';
-
       echo '</div>';
     }
     ?>

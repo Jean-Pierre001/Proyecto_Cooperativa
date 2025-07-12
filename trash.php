@@ -71,6 +71,7 @@ if (!isset($_SESSION['user'])) {
       top: 5px;
       right: 10px;
     }
+
     .folder-location {
       font-size: 13px;
       color: #7f8c8d;
@@ -87,17 +88,16 @@ if (!isset($_SESSION['user'])) {
   <h2>Papelera</h2>
 
   <!--formulario de filtro-->
-    <form method="GET" class="form-inline" style="margin-bottom: 20px;">
-        <div class="form-group">
-          <input type="text" name="buscar" class="form-control" placeholder="Buscar por nombre..." value="<?= htmlspecialchars($_GET['buscar'] ?? '') ?>" style="min-width: 500px;">
-        </div>
-        <button type="submit" class="btn btn-primary">Buscar</button>
-        <a href="folders.php" class="btn btn-default">Limpiar</a>
-        
-    </form>
+  <form method="GET" class="form-inline" style="margin-bottom: 20px;">
+      <div class="form-group">
+        <input type="text" name="buscar" class="form-control" placeholder="Buscar por nombre..." value="<?= htmlspecialchars($_GET['buscar'] ?? '') ?>" style="min-width: 500px;">
+      </div>
+      <button type="submit" class="btn btn-primary">Buscar</button>
+      <a href="trash.php" class="btn btn-default">Limpiar</a>
+  </form>
 
   <p>Carpetas en la papelera del sistema:</p>
-   
+
   <?php if (isset($_SESSION['error'])): ?>
     <div class="alert alert-danger"><?= $_SESSION['error'] ?></div>
     <?php unset($_SESSION['error']); ?>
@@ -119,40 +119,38 @@ if (!isset($_SESSION['user'])) {
         $stmt = $pdo->prepare($sql);
         $stmt->execute([':buscar' => '%' . $buscar . '%']);
       } else {
-        $sql = "SELECT * FROM folders";
-        $stmt = $pdo->query($sql);
+        $stmt = $pdo->query("SELECT * FROM trash");
       }
 
       $folders = $stmt->fetchAll();
 
-
       if (count($folders) === 0) {
         echo "<p>No hay carpetas en la papelera.</p>";
-      }
+      } else {
+        foreach ($folders as $folder) {
+          $folder_name = htmlspecialchars($folder['name']); 
+          $folder_system_name = $folder['folder_system_name']; 
+          $encoded_name = urlencode('trash/' . $folder_system_name);
+          $folder_id = $folder['id'];
 
-      foreach ($folders as $folder) {
-        $folder_name = htmlspecialchars($folder['name']); 
-        $folder_system_name = $folder['folder_system_name']; 
-        $encoded_name = urlencode($folder_system_name);
-        $folder_id = $folder['id'];
-
-        echo '
-          <div style="position: relative; display: inline-block; margin: 10px;">
-            <a href="detailsfolders.php?folder=' . $encoded_name . '" class="folder-card" style="display: block;">
-              <div class="folder-icon">
-                <span class="glyphicon glyphicon-folder-open"></span>
-              </div>
-              <div class="folder-name">' . htmlspecialchars($folder_name) . '</div>
-              <div class="folder-location">' . htmlspecialchars($folder['location']) . '</div>
-            </a>
-            <form method="POST" action="restore_folder.php" onsubmit="return confirm(\'¿Eliminar carpeta ' . addslashes(htmlspecialchars($folder_name)) . '?\');" class="delete-button">
-              <input type="hidden" name="folder_id" value="' . $folder_id . '">
-              <button type="submit" class="btn btn-danger btn-sm">
-                <span class="glyphicon glyphicon-repeat"></span>
-              </button>
-            </form>
-          </div>
-        ';
+          echo '
+            <div style="position: relative; display: inline-block; margin: 10px;">
+              <a href="detailsfolders.php?folder=' . $encoded_name . '" class="folder-card" style="display: block;">
+                <div class="folder-icon">
+                  <span class="glyphicon glyphicon-folder-open"></span>
+                </div>
+                <div class="folder-name">' . $folder_name . '</div>
+                <div class="folder-location">trash/' . htmlspecialchars($folder_system_name) . '</div>
+              </a>
+              <form method="POST" action="restore_folder.php" onsubmit="return confirm(&quot;¿Restaurar carpeta <?= addslashes($folder_name) ?>?&quot;);" class="delete-button">
+                <input type="hidden" name="folder_id" value="' . $folder_id . '">
+                <button type="submit" class="btn btn-warning btn-sm" title="Restaurar">
+                  <span class="glyphicon glyphicon-repeat"></span>
+                </button>
+              </form>
+            </div>
+          ';
+        }
       }
     ?>
   </div>

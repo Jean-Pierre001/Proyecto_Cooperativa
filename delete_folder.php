@@ -5,6 +5,7 @@ if (!isset($_SESSION['user'])) {
     header('location: login.php');
     exit();
 }
+
 require_once 'includes/conn.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -12,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $folder_id = $_POST['folder_id'];
 
         try {
-            // Buscar carpeta en folders
+            // Buscar la carpeta en la base de datos
             $stmt = $pdo->prepare("SELECT * FROM folders WHERE id = ?");
             $stmt->execute([$folder_id]);
             $folder = $stmt->fetch();
@@ -21,37 +22,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['error'] = "Carpeta no encontrada en la base de datos.";
                 header('Location: folders.php');
                 exit;
-            } else {
-                // Debug: revisar id
-                if (empty($folder['id'])) {
-                    $_SESSION['error'] = "Error: el ID de la carpeta está vacío.";
-                    header('Location: folders.php');
-                    exit;
-                }
             }
 
+            // Preparar datos para la papelera
             $trashFolderPath = 'trash/' . $folder['folder_system_name'];
             $trashFolderSystemName = $folder['folder_system_name'];
 
+            // Insertar en la tabla trash (sin location)
             $insert = $pdo->prepare("INSERT INTO trash 
-                (original_id, name, cue, folder_path, location, folder_system_name, deleted_on) 
-                VALUES (?, ?, ?, ?, ?, ?, CURDATE())");
+                (name, folder_path, deleted_on, original_id, folder_system_name) 
+                VALUES (?, ?, CURDATE(), ?, ?)");
             $insert->execute([
-                $folder['id'],
                 $folder['name'],
-                $folder['cue'],
-                $trashFolderPath,        // Ruta actualizada a trash/
-                $folder['location'],
-                $trashFolderSystemName   // Nombre físico sigue igual
+                $trashFolderPath,
+                $folder['id'],
+                $trashFolderSystemName
             ]);
 
-            // Eliminar de folders
+            // Eliminar la carpeta de la tabla original
             $delete = $pdo->prepare("DELETE FROM folders WHERE id = ?");
             $delete->execute([$folder_id]);
 
-            // Mover carpeta física
-            $baseFolders = __DIR__ . 'folders/';
-            $baseTrash = __DIR__ . 'trash/';
+            // Mover carpeta físicamente
+            $baseFolders = __DIR__ . '/folders/';
+            $baseTrash = __DIR__ . '/trash/';
 
             $oldPath = $baseFolders . $folder['folder_system_name'];
             $newPath = $baseTrash . $folder['folder_system_name'];
@@ -60,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mkdir($baseTrash, 0755, true);
             }
 
-            // Función recursiva para mover carpeta completa
+            // Función para mover carpeta completa recursivamente
             function moveFolder($src, $dst) {
                 mkdir($dst, 0755, true);
                 foreach (scandir($src) as $file) {

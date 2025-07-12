@@ -3,7 +3,7 @@ require_once '../includes/conn.php';
 session_start();
 
 try {
-    // Obtener y sanitizar datos del formulario
+    // Obtener datos del formulario
     $name = $_POST['name'] ?? '';
     $dni = $_POST['dni'] ?? '';
     $phone = $_POST['phone'] ?? null;
@@ -13,14 +13,14 @@ try {
     $status = $_POST['status'] ?? 'active';
     $contributions = $_POST['contributions'] ?? 0.00;
 
-    // Validaciones mínimas
+    // Validaciones básicas
     if (empty($name) || empty($dni)) {
         $_SESSION['error'] = 'Nombre y DNI son obligatorios.';
         header('Location: ../members.php');
         exit();
     }
 
-    // Insertar miembro
+    // Insertar socio en la base de datos
     $stmt = $pdo->prepare("INSERT INTO members (name, dni, phone, email, address, entry_date, status, contributions) 
                            VALUES (:name, :dni, :phone, :email, :address, :entry_date, :status, :contributions)");
     $stmt->execute([
@@ -36,11 +36,21 @@ try {
 
     $member_id = $pdo->lastInsertId();
 
-    // Ruta base de uploads
+    // Sanitizar el nombre para usarlo como carpeta
+    function sanitizeFolderName($str) {
+        $str = strtolower($str); // minúsculas
+        $str = trim($str);       // quitar espacios al inicio y fin
+        $str = str_replace(' ', '_', $str); // espacios por guiones bajos
+        $str = preg_replace('/[^a-z0-9_-]/', '', $str); // quitar caracteres no válidos
+        return $str;
+    }
+
+    $safeName = sanitizeFolderName($name);
+
     $uploadBaseDir = __DIR__ . '/../uploads/';
 
-    // Crear carpeta específica para el socio, usando el ID
-    $memberUploadDir = $uploadBaseDir . $member_id . '/';
+    // Crear carpeta usando el nombre sanitizado
+    $memberUploadDir = $uploadBaseDir . $safeName . '/';
 
     if (!is_dir($memberUploadDir)) {
         mkdir($memberUploadDir, 0755, true);
@@ -53,15 +63,13 @@ try {
             $fileSize = $_FILES['documents']['size'][$index];
 
             if ($fileSize > 0 && is_uploaded_file($tmpName)) {
-                // Para evitar colisiones de nombres, agregamos timestamp
-                $safeName = time() . '_' . basename($filename);
-                $destination = $memberUploadDir . $safeName;
+                $safeFileName = time() . '_' . basename($filename);
+                $destination = $memberUploadDir . $safeFileName;
 
                 if (move_uploaded_file($tmpName, $destination)) {
-                    // Guardar solo el nombre relativo (con carpeta id/)
-                    $relativePath = $member_id . '/' . $safeName;
+                    // Guardar ruta relativa usando el nombre sanitizado (no el id)
+                    $relativePath = $safeName . '/' . $safeFileName;
 
-                    // Insertar en member_documents con la ruta relativa
                     $stmt = $pdo->prepare("INSERT INTO member_documents (member_id, file_path) VALUES (:member_id, :file_path)");
                     $stmt->execute([
                         ':member_id' => $member_id,
@@ -79,4 +87,3 @@ try {
 
 header('Location: ../members.php');
 exit();
-
