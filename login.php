@@ -56,7 +56,6 @@
         </div>
       </form>
       <br>
-      <a href="index.php" class="text-center"><i class="fa fa-home"></i> Home</a>
     </div>
   </div>
 

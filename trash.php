@@ -1,4 +1,11 @@
-<?php include 'includes/session.php'; ?>
+<?php 
+include 'includes/session.php';
+
+if (!isset($_SESSION['user'])) {
+    header('location: login.php');
+    exit();
+}
+?>
 <?php include 'includes/header.php'; ?>
 <?php include 'includes/navbar.php'; ?>
 

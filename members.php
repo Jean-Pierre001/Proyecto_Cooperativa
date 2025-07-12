@@ -1,5 +1,10 @@
 <?php
-include 'includes/session.php'; 
+include 'includes/session.php';
+
+if (!isset($_SESSION['user'])) {
+    header('location: login.php');
+    exit();
+}
 include 'includes/header.php'; 
 include 'includes/navbar.php';
 require_once 'includes/conn.php';
@@ -24,65 +29,23 @@ $members = $stmt->fetchAll();
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Gestor de Miembros</title>
+  <title>Gestor de Socios</title>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
-    body {
-      padding-top: 50px;
-      background-color: #ecf0f1;
-    }
-    .content-wrapper {
-      margin-left: 230px;
-      padding: 20px;
-      min-height: 90vh;
-    }
-    .top-actions {
-      margin-bottom: 20px;
-      text-align: right;
-    }
-    .btn .bi {
-      vertical-align: middle;
-      margin-right: 4px;
-    }
-
-    /* Tabla mejorada */
-    .table thead {
-      background-color: #343a40;
-      color: #fff;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .table tbody tr:hover {
-      background-color: #f1f7fc;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-
-    .table td, .table th {
-      vertical-align: middle !important;
-    }
-
-    .table td .btn {
-      padding: 5px 8px;
-      font-size: 14px;
-    }
-
-    .text-muted {
-      font-style: italic;
-      color: #999;
-    }
-
-    /* Responsive */
+    /* tus estilos actuales */
+    body { padding-top: 50px; background-color: #ecf0f1; }
+    .content-wrapper { margin-left: 230px; padding: 20px; min-height: 90vh; }
+    .top-actions { margin-bottom: 20px; text-align: right; }
+    .btn .bi { vertical-align: middle; margin-right: 4px; }
+    .table thead { background-color: #343a40; color: #fff; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+    .table tbody tr:hover { background-color: #f1f7fc; cursor: pointer; transition: background-color 0.3s ease; }
+    .table td, .table th { vertical-align: middle !important; }
+    .table td .btn { padding: 5px 8px; font-size: 14px; }
+    .text-muted { font-style: italic; color: #999; }
     @media (max-width: 768px) {
-      .table-responsive {
-        border: 0;
-      }
-      .table thead {
-        display: none;
-      }
+      .table-responsive { border: 0; }
+      .table thead { display: none; }
       .table tbody tr {
         display: block;
         margin-bottom: 15px;
@@ -98,9 +61,7 @@ $members = $stmt->fetchAll();
         border: none;
         border-bottom: 1px solid #ddd;
       }
-      .table tbody tr td:last-child {
-        border-bottom: 0;
-      }
+      .table tbody tr td:last-child { border-bottom: 0; }
       .table tbody tr td::before {
         content: attr(data-label);
         font-weight: 600;
@@ -115,13 +76,35 @@ $members = $stmt->fetchAll();
 <?php include 'includes/modals/modalMembers.php'; ?>
 <?php include 'includes/sidebar.php'; ?>
 
+<!-- Modal para ver documentos -->
+<div class="modal fade" id="modalVerDocumentos" tabindex="-1" role="dialog" aria-labelledby="modalVerDocumentosLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Documentos del Socio: <span id="nombreSocioDoc"></span></h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div id="contenedorDocumentos">
+          <p class="text-muted">Cargando documentos...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="content-wrapper">
-  <h2>Gestor de Miembros</h2>
+  <h2>Gestor de Socios</h2>
 
   <?php
     if (isset($_SESSION['user_data']) && is_array($_SESSION['user_data'])) {
       $user = $_SESSION['user_data'];
-      echo "<div class='alert alert-info'>Bienvenido, <strong>{$user['first_name']} {$user['last_name']}</strong>. Rol: <strong>" . ($user['type'] == 1 ? "Administrador" : "Usuario") . "</strong>.</div>";
+      echo "<div class='alert alert-info'>Bienvenido, <strong>{$user['first_name']} {$user['last_name']}</strong>. Estás logueado como <strong>" . ($user['type'] == 1 ? "Administrador" : "Usuario") . "</strong>.</div>";
     } else {
       echo "<div class='alert alert-warning'>No se pudo cargar la información del usuario.</div>";
     }
@@ -139,26 +122,19 @@ $members = $stmt->fetchAll();
 
   <form method="POST" class="form-inline mb-3">
     <div class="form-group">
-      <input
-        type="text"
-        name="filterName"
-        class="form-control"
-        placeholder="Filtrar por nombre de miembro"
-        value="<?= htmlspecialchars($filterName) ?>"
-        style="min-width: 500px;"
-      />
+      <input type="text" name="filterName" class="form-control" placeholder="Filtrar por nombre de miembro" value="<?= htmlspecialchars($filterName) ?>" style="min-width: 500px;" />
     </div>
     <button type="submit" class="btn btn-primary ml-2">Filtrar</button>
   </form>
 
   <div class="top-actions">
     <button class="btn btn-success" data-toggle="modal" data-target="#modalCreateMember">
-      <i class="bi bi-person-plus-fill"></i> Agregar Miembro
+      <i class="bi bi-person-plus-fill"></i> Agregar Socio
     </button>
   </div>
 
   <?php if (empty($members)): ?>
-    <p>No se encontraron miembros.</p>
+    <p>No se encontraron socios.</p>
   <?php else: ?>
     <div class="table-responsive">
       <table class="table table-bordered table-hover table-condensed text-center">
@@ -172,7 +148,6 @@ $members = $stmt->fetchAll();
             <th>Fecha de Ingreso</th>
             <th>Estado</th>
             <th>Aportes</th>
-            <th>Documento</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -196,18 +171,12 @@ $members = $stmt->fetchAll();
                 ?>
               </td>
               <td data-label="Aportes">$<?= number_format($member['contributions'], 2) ?></td>
-              <td data-label="Documento">
-                <?php if (!empty($member['document'])): ?>
-                  <a href="members_back/downloadDocument.php?id=<?= $member['id'] ?>" class="btn btn-default btn-xs" title="Descargar documento" target="_blank">
-                    <i class="bi bi-file-earmark-arrow-down-fill"></i>
-                  </a>
-                <?php else: ?>
-                  <span class="text-muted">N/D</span>
-                <?php endif; ?>
-              </td>
               <td data-label="Acciones">
                 <button class="btn btn-warning btn-sm" onclick='openEditModal(<?= json_encode($member) ?>)' title="Editar">
                   <i class="bi bi-pencil-fill"></i>
+                </button>
+                <button class="btn btn-info btn-sm" onclick='verDocumentos(<?= $member["id"] ?>, <?= json_encode(htmlspecialchars($member["name"])) ?>)' title="Ver documentos">
+                  <i class="bi bi-folder2-open"></i>
                 </button>
                 <form method="POST" action="members_back/deleteMember.php" onsubmit="return confirm('¿Eliminar al miembro <?= htmlspecialchars($member['name']) ?>?');" style="display:inline;">
                   <input type="hidden" name="id" value="<?= $member['id'] ?>" />
@@ -222,9 +191,9 @@ $members = $stmt->fetchAll();
       </table>
     </div>
   <?php endif; ?>
-
 </div>
 
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
 <script>
   function openEditModal(member) {
     document.getElementById('edit_id').value = member.id;
@@ -236,7 +205,68 @@ $members = $stmt->fetchAll();
     document.getElementById('edit_entry_date').value = member.entry_date;
     document.getElementById('edit_status').value = member.status;
     document.getElementById('edit_contributions').value = member.contributions;
+
+    const docsDiv = document.getElementById('documentos_actuales');
+    docsDiv.innerHTML = '<p class="text-muted">Cargando documentos...</p>';
+
+    fetch('members_back/getDocuments.php?member_id=' + member.id)
+      .then(response => response.json())
+      .then(data => {
+        if (!Array.isArray(data) || data.length === 0) {
+          docsDiv.innerHTML = '<p class="text-muted">Este socio no tiene documentos cargados.</p>';
+          return;
+        }
+        let html = '<ul style="list-style:none; padding-left:0;">';
+        data.forEach(doc => {
+          html += `
+            <li style="margin-bottom: 8px;">
+              <a href="uploads/${doc.file_path}" target="_blank">${doc.file_path}</a>
+              <label style="margin-left: 10px;">
+                <input type="checkbox" name="delete_docs[]" value="${doc.id}"> Eliminar
+              </label>
+            </li>
+          `;
+        });
+        html += '</ul>';
+        docsDiv.innerHTML = html;
+      })
+      .catch(() => {
+        docsDiv.innerHTML = '<p class="text-danger">Error al cargar los documentos.</p>';
+      });
+
     $('#modalEditMember').modal('show');
+  }
+
+  function verDocumentos(memberId, memberName) {
+    $('#nombreSocioDoc').text(memberName);
+    $('#contenedorDocumentos').html('<p class="text-muted">Cargando documentos...</p>');
+    $('#modalVerDocumentos').modal('show');
+
+    fetch('members_back/getDocuments.php?member_id=' + memberId)
+      .then(response => response.json())
+      .then(data => {
+        if (!Array.isArray(data) || data.length === 0) {
+          $('#contenedorDocumentos').html('<p class="text-muted">Este socio no tiene documentos cargados.</p>');
+          return;
+        }
+        let html = '<table class="table table-striped">';
+        html += '<thead><tr><th>Nombre del archivo</th><th>Acción</th></tr></thead><tbody>';
+        data.forEach(doc => {
+          html += `<tr>
+            <td>${doc.document_type ? doc.document_type + ': ' : ''}${doc.file_path}</td>
+            <td>
+              <a href="uploads/${doc.file_path}" target="_blank" class="btn btn-sm btn-primary" title="Descargar documento">
+                <i class="bi bi-download"></i> Descargar
+              </a>
+            </td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+        $('#contenedorDocumentos').html(html);
+      })
+      .catch(() => {
+        $('#contenedorDocumentos').html('<p class="text-danger">Error al cargar documentos.</p>');
+      });
   }
 </script>
 

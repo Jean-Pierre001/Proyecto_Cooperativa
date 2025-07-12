@@ -1,5 +1,10 @@
 <?php
 include 'includes/session.php';
+
+if (!isset($_SESSION['user'])) {
+    header('location: login.php');
+    exit();
+}
 require_once 'includes/conn.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

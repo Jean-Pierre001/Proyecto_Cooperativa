@@ -1,4 +1,14 @@
-<?php include 'includes/session.php'; ?>
+<?php
+include 'includes/session.php';
+
+if (!isset($_SESSION['user'])) {
+    header('location: login.php');
+    exit();
+}
+
+// Aquí pueden entrar tanto admin como usuarios comunes
+?>
+
 <?php include 'includes/header.php'; ?>
 <?php include 'includes/navbar.php'; ?>
 
@@ -23,13 +33,13 @@
   <?php include 'includes/sidebar.php'; ?>
 
   <div class="content-wrapper">
-    <h2>Bienvenido al Gestor Escolar</h2>
+    <h2>Bienvenido al Gestor de la Cooperativa</h2>
     <p>Seleccioná una opción del menú para comenzar.</p>
 
     <?php
 		if (isset($_SESSION['user_data']) && is_array($_SESSION['user_data'])) {
 		$user = $_SESSION['user_data'];
-		echo "<div class='alert alert-info'>Hola, <strong>{$user['first_name']} {$user['last_name']}</strong>. Estás logueado como <strong>" . ($user['type'] == 1 ? "Administrador" : "Usuario") . "</strong>.</div>";
+		echo "<div class='alert alert-info'>Bienvenido, <strong>{$user['first_name']} {$user['last_name']}</strong>. Estás logueado como <strong>" . ($user['type'] == 1 ? "Administrador" : "Usuario") . "</strong>.</div>";
 		} else {
 		echo "<div class='alert alert-warning'>No se pudo cargar la información del usuario.</div>";
 		}

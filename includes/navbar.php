@@ -23,8 +23,10 @@ include 'modals/profile_modal.php';
       <div class="collapse navbar-collapse" id="mainNavbar">
         <ul class="nav navbar-nav">
           <li><a href="index.php">Inicio</a></li>
-          <li><a href="about.php">Nosotros</a></li>
           <li><a href="contact.php">Contacto</a></li>
+          <?php if ($_SESSION['user_data']['type'] == 1): ?>
+            <li><a href="admin/home.php">Panel Administrador</a></li>
+          <?php endif; ?>
         </ul>
 
         <ul class="nav navbar-nav navbar-right">
@@ -40,7 +42,7 @@ include 'modals/profile_modal.php';
                   </a>
                   <ul class="dropdown-menu">
                     <li><a href="#" data-toggle="modal" data-target="#profile">Mi Perfil</a></li>
-                    <li><a href="logout.php">Cerrar sesión</a></li>
+                    <li><a href="logout.php">Cerrar sesión</a></li>                   
                   </ul>
                 </li>
               ';
