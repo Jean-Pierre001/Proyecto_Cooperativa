@@ -1,5 +1,5 @@
 <?php
-$host = 'CooperativaLtda.infinityfreeapp.com'; // Reemplazá con el hostname real que ves en el panel
+$host = 'sql200.infinityfree.com'; // Reemplazá con el hostname real que ves en el panel
 $db   = 'if0_39464143_cooperativa'; // Reemplazá con el nombre completo de tu BD
 $user = 'if0_39464143'; // Reemplazá con tu usuario de la base de datos
 $pass = 'g8VCJB4WEf'; // Escribí tu contraseña real
