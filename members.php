@@ -76,28 +76,6 @@ $members = $stmt->fetchAll();
 <?php include 'includes/modals/modalMembers.php'; ?>
 <?php include 'includes/sidebar.php'; ?>
 
-<!-- Modal para ver documentos -->
-<div class="modal fade" id="modalVerDocumentos" tabindex="-1" role="dialog" aria-labelledby="modalVerDocumentosLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title">Documentos del Socio: <span id="nombreSocioDoc"></span></h4>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <div id="contenedorDocumentos">
-          <p class="text-muted">Cargando documentos...</p>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div class="content-wrapper">
   <h2>Gestor de Socios</h2>
 

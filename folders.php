@@ -78,25 +78,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_folder'])) {
     .content-wrapper { margin-left: 230px; padding: 30px; }
     .folder-grid { display: flex; flex-wrap: wrap; gap: 25px; }
     .folder-card {
-      background: #ffffff; width: 180px; height: 180px;
-      border-radius: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.08);
-      transition: all 0.3s ease; text-align: center; padding: 20px 10px;
-      cursor: pointer; position: relative; overflow: hidden; text-decoration: none;
+      background: #ffffff; 
+      width: 180px; 
+      height: 180px;
+      border-radius: 15px; 
+      box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+      transition: all 0.3s ease; 
+      text-align: center; 
+      padding: 20px 10px;
+      cursor: pointer; 
+      position: relative; 
+      overflow: hidden; 
+      text-decoration: none;
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: start;
+      padding-bottom: 60px; /* más espacio para botones */
     }
+
     .folder-card:hover {
       transform: translateY(-5px);
       box-shadow: 0 12px 24px rgba(0,0,0,0.15);
       background: linear-gradient(to bottom, #fff7e6, #ffe0b2);
     }
+
     .folder-icon { font-size: 55px; color: #f1c40f; margin-bottom: 10px; }
-    .folder-name { font-size: 16px; font-weight: 600; color: #2c3e50; word-break: break-word; }
-    .delete-button { position: absolute; top: 5px; right: 10px; }
+    .folder-name { 
+      font-size: 16px; 
+      font-weight: 600; 
+      color: #2c3e50; 
+      word-break: break-word;
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    .folder-actions {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #f9f9f9;
+      padding: 6px 14px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      pointer-events: auto; /* para que pueda recibir clicks */
+      cursor: default;
+      user-select: none;
+    }
+
+    .folder-actions form,
+    .folder-actions button {
+      margin: 0;
+      padding: 0;
+    }
+
+    .folder-actions button,
+    .folder-actions .btn {
+      color: #f0ad4e;
+      font-size: 18px;
+      padding: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      outline: none;
+      transition: color 0.2s ease;
+    }
+
+    .folder-actions form button {
+      color: #d9534f;
+    }
+
+    .folder-actions button:hover,
+    .folder-actions form button:hover {
+      color: #d47a0a;
+    }
+
     .folder-location { font-size: 13px; color: #7f8c8d; margin-top: 5px; word-break: break-word; }
+
   </style>
 </head>
 <body>
 
 <?php include 'includes/sidebar.php'; ?>
+<?php include 'includes/modals/modalRename.php'; ?>
 
 <div class="content-wrapper">
   <h2>Gestor de Carpetas</h2>
@@ -112,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_folder'])) {
   <!-- Buscar carpeta -->
   <form method="GET" class="form-inline" style="margin-bottom: 20px;">
     <div class="form-group">
-      <input type="text" name="buscar" class="form-control" placeholder="Buscar por nombre..." value="<?= htmlspecialchars($_GET['buscar'] ?? '') ?>" style="min-width: 500px;">
+      <input type="text" name="buscar" class="form-control" placeholder="Buscar Carpeta por nombre..." value="<?= htmlspecialchars($_GET['buscar'] ?? '') ?>" style="min-width: 500px;">
     </div>
     <button type="submit" class="btn btn-primary">Buscar</button>
     <a href="folders.php" class="btn btn-default">Limpiar</a>
@@ -152,16 +221,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_folder'])) {
           $folder_id = $folder['id'];
 
           echo '
-            <div style="position: relative; display: inline-block; margin: 10px;">
-              <a href="detailsfolders.php?folder=' . $encoded_name . '" class="folder-card" style="display: block;">
-                <div class="folder-icon"><span class="glyphicon glyphicon-folder-open"></span></div>
-                <div class="folder-name">' . htmlspecialchars($folder_name) . '</div>
-              </a>
-              <form method="POST" action="delete_folder.php" onsubmit="return confirm(\'¿Eliminar carpeta ' . addslashes(htmlspecialchars($folder_name)) . '?\');" class="delete-button">
+          <div style="position: relative; display: inline-block; margin: 10px;">
+            <a href="detailsfolders.php?folder=' . $encoded_name . '" class="folder-card">
+              <div class="folder-icon"><span class="glyphicon glyphicon-folder-open"></span></div>
+              <div class="folder-name">' . htmlspecialchars($folder_name) . '</div>
+            </a>
+
+            <div class="folder-actions">
+              <form method="POST" action="delete_folder.php" onsubmit="return confirm(\'¿Eliminar carpeta ' . addslashes(htmlspecialchars($folder_name)) . '?\');">
                 <input type="hidden" name="folder_id" value="' . $folder_id . '">
-                <button type="submit" class="btn btn-danger btn-sm"><span class="glyphicon glyphicon-trash"></span></button>
+                <button type="submit" title="Eliminar carpeta">
+                  <span class="glyphicon glyphicon-trash"></span>
+                </button>
               </form>
+
+              <button class="rename-button" 
+                data-folder-id="' . $folder_id . '" 
+                data-folder-name="' . htmlspecialchars($folder_name, ENT_QUOTES) . '" 
+                title="Renombrar carpeta">
+                <span class="glyphicon glyphicon-pencil"></span>
+              </button>
             </div>
+          </div>
           ';
         }
       }
@@ -176,7 +257,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_folder'])) {
     <div class="form-group">
       <input type="text" name="buscar_socios" class="form-control" placeholder="Buscar socio por nombre..." value="<?= htmlspecialchars($_GET['buscar_socios'] ?? '') ?>" style="min-width: 500px;">
     </div>
-    <button type="submit" class="btn btn-primary">Buscar Socio</button>
+    <button type="submit" class="btn btn-primary">Buscar</button>
     <a href="folders.php" class="btn btn-default">Limpiar</a>
   </form>
 
@@ -219,11 +300,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_folder'])) {
       }
     ?>
   </div>
-
+  <br>
 </div>
 
 <?php include 'includes/footer.php'; ?>
 <?php include 'includes/scripts.php'; ?>
+
+<script>
+  // Evitar hover de carpeta cuando mouse está sobre botones de acciones
+  document.querySelectorAll('.folder-actions').forEach(actions => {
+    const card = actions.previousElementSibling; // el <a> con .folder-card
+
+    actions.addEventListener('mouseenter', () => {
+      if(card) card.style.pointerEvents = 'none';
+      actions.style.pointerEvents = 'auto';
+    });
+
+    actions.addEventListener('mouseleave', () => {
+      if(card) card.style.pointerEvents = 'auto';
+    });
+  });
+
+  document.querySelectorAll('.rename-button').forEach(button => {
+    button.addEventListener('click', () => {
+      const folderId = button.getAttribute('data-folder-id');
+      const folderName = button.getAttribute('data-folder-name');
+
+      // Setear valores en el modal
+      document.getElementById('renameFolderId').value = folderId;
+      document.getElementById('newFolderName').value = folderName;
+
+      // Abrir modal (usando Bootstrap)
+      $('#renameModal').modal('show');
+    });
+  });
+
+</script>
+
+
 
 </body>
 </html>

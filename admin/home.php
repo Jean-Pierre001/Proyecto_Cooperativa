@@ -39,7 +39,7 @@ if (!isset($_SESSION['user']) || $_SESSION['user_data']['type'] != 1) {
     <?php
 		if (isset($_SESSION['user_data']) && is_array($_SESSION['user_data'])) {
 		$user = $_SESSION['user_data'];
-		echo "<div class='alert alert-info'>Bienvenido  , <strong>{$user['first_name']} {$user['last_name']}</strong>. Estás logueado como <strong>" . ($user['type'] == 1 ? "Administrador" : "Usuario") . "</strong>.</div>";
+		echo "<div class='alert alert-info'>Bienvenido, <strong>{$user['first_name']} {$user['last_name']}</strong>. Estás logueado como <strong>" . ($user['type'] == 1 ? "Administrador" : "Usuario") . "</strong>.</div>";
 		} else {
 		echo "<div class='alert alert-warning'>No se pudo cargar la información del usuario.</div>";
 		}

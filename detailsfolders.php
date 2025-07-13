@@ -56,8 +56,6 @@ if (isset($_GET['download'])) {
     }
 }
 
-// --- Fin lógica descarga ---
-
 include 'includes/session.php';
 include 'includes/header.php';
 include 'includes/navbar.php';
@@ -114,14 +112,28 @@ if (isset($_POST['new_folder']) && !empty($_POST['folder_name'])) {
 
 // --- SUBIR ARCHIVO ---
 if (isset($_POST['upload']) && isset($_FILES['file'])) {
-    $file_name = basename($_FILES['file']['name']);
-    $file_tmp = $_FILES['file']['tmp_name'];
-    $file_dest = $target_path . DIRECTORY_SEPARATOR . $file_name;
+    $totalFiles = count($_FILES['file']['name']);
+    $uploadErrors = [];
+    $uploadSuccesses = [];
 
-    if (move_uploaded_file($file_tmp, $file_dest)) {
-        $msg = "Archivo <strong>$file_name</strong> subido correctamente.";
-    } else {
-        $msg_error = "Error al subir el archivo.";
+    for ($i = 0; $i < $totalFiles; $i++) {
+        $file_name = basename($_FILES['file']['name'][$i]);
+        $file_tmp = $_FILES['file']['tmp_name'][$i];
+        $file_dest = $target_path . DIRECTORY_SEPARATOR . $file_name;
+
+        if (move_uploaded_file($file_tmp, $file_dest)) {
+            $uploadSuccesses[] = $file_name;
+        } else {
+            $uploadErrors[] = $file_name;
+        }
+    }
+
+    if (count($uploadSuccesses) > 0) {
+        $msg = "Archivos subidos correctamente: <strong>" . implode(", ", $uploadSuccesses) . "</strong>.";
+    }
+
+    if (count($uploadErrors) > 0) {
+        $msg_error = "Error al subir los siguientes archivos: <strong>" . implode(", ", $uploadErrors) . "</strong>.";
     }
 }
 ?>
@@ -217,7 +229,7 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
       box-shadow: 0 4px 14px rgba(0,0,0,0.2);
     }
     .action-buttons a .glyphicon {
-      margin: 0; /* quitar margen para centrar icono */
+      margin: 0;
       font-size: 18px;
     }
 
@@ -269,45 +281,74 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
   </form>
 
   <form method="post" enctype="multipart/form-data" class="form-inline" style="margin-bottom: 30px;">
-    <div class="form-group">
-      <label>Subir Archivo:</label>
-      <input type="file" name="file" class="form-control" required>
-    </div>
-    <button type="submit" name="upload" class="btn btn-success">Subir</button>
+  <div class="form-group">
+    <label>Subir Archivo(s):</label>
+    <input type="file" name="file[]" class="form-control" multiple required>
+  </div>
+  <button type="submit" name="upload" class="btn btn-success">Subir</button>
   </form>
 
-  <div class="item-grid">
-    <?php
-    $items = scandir($target_path);
-    foreach ($items as $item) {
-      if ($item === '.' || $item === '..') continue;
 
-      $full_path = $target_path . DIRECTORY_SEPARATOR . $item;
-      $is_dir = is_dir($full_path);
-      $type_class = $is_dir ? 'folder' : 'file';
+  <?php
+  // Listar carpetas y archivos por separado
+  $items = scandir($target_path);
+  $folders = [];
+  $files = [];
 
-      if ($is_dir) {
-        $link = 'detailsfolders.php?folder=' . urlencode(($folder ? $folder . '/' : '') . $item);
-        $name_link = '<a href="' . $link . '">' . htmlspecialchars($item) . '</a>';
-      } else {
-        $link = 'detailsfolders.php?folder=' . urlencode($folder) . '&download=' . urlencode($item);
-        $name_link = '<a href="' . $link . '">' . htmlspecialchars($item) . '</a>';
-      }
-
-      echo '<div class="item-box ' . $type_class . '">';
-      echo '<div class="item-icon"><span class="glyphicon ' . ($is_dir ? 'glyphicon-folder-close' : 'glyphicon-file') . '"></span></div>';
-      echo '<div class="item-name">' . $name_link . '</div>';
-      echo '<div class="action-buttons">';
-      echo '<a href="detailsfolders.php?folder=' . urlencode($folder) . '&delete=' . urlencode($item) . '&type=' . ($is_dir ? 'folder' : 'file') . '" onclick="return confirm(\'¿Estás seguro que deseas eliminar ' . htmlspecialchars($item) . '?\');" title="Eliminar">';
-      echo '<span class="glyphicon glyphicon-trash"></span>';
-      echo '</a>';
-      echo '</div>';
-      echo '</div>';
+  foreach ($items as $item) {
+    if ($item === '.' || $item === '..') continue;
+    $full_path = $target_path . DIRECTORY_SEPARATOR . $item;
+    if (is_dir($full_path)) {
+      $folders[] = $item;
+    } else {
+      $files[] = $item;
     }
-    ?>
-  </div>
+  }
+  ?>
+
+  <?php if (count($folders) > 0): ?>
+    <h3>Carpetas</h3>
+    <div class="item-grid">
+      <?php foreach ($folders as $folder_name): ?>
+        <?php 
+          $link = 'detailsfolders.php?folder=' . urlencode(($folder ? $folder . '/' : '') . $folder_name);
+        ?>
+        <div class="item-box folder">
+          <div class="item-icon"><span class="glyphicon glyphicon-folder-close"></span></div>
+          <div class="item-name"><a href="<?php echo $link; ?>"><?php echo htmlspecialchars($folder_name); ?></a></div>
+          <div class="action-buttons">
+            <a href="detailsfolders.php?folder=<?php echo urlencode($folder); ?>&delete=<?php echo urlencode($folder_name); ?>&type=folder" onclick="return confirm('¿Estás seguro que deseas eliminar <?php echo htmlspecialchars($folder_name); ?>?');" title="Eliminar">
+              <span class="glyphicon glyphicon-trash"></span>
+            </a>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
+  <?php if (count($files) > 0): ?>
+    <h3>Archivos</h3>
+    <div class="item-grid">
+      <?php foreach ($files as $file_name): ?>
+        <?php 
+          $link = 'detailsfolders.php?folder=' . urlencode($folder) . '&download=' . urlencode($file_name);
+        ?>
+        <div class="item-box file">
+          <div class="item-icon"><span class="glyphicon glyphicon-file"></span></div>
+          <div class="item-name"><a href="<?php echo $link; ?>"><?php echo htmlspecialchars($file_name); ?></a></div>
+          <div class="action-buttons">
+            <a href="detailsfolders.php?folder=<?php echo urlencode($folder); ?>&delete=<?php echo urlencode($file_name); ?>&type=file" onclick="return confirm('¿Estás seguro que deseas eliminar <?php echo htmlspecialchars($file_name); ?>?');" title="Eliminar">
+              <span class="glyphicon glyphicon-trash"></span>
+            </a>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+
 </div>
 
 <?php include 'includes/footer.php'; ?>
+
 </body>
 </html>
