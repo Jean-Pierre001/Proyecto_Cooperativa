@@ -17,6 +17,8 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <!-- Bootstrap JS -->
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+<!-- Anti robots Captcha -->
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
 <script>
   $(function () {
