@@ -10,7 +10,8 @@
 
           <div class="form-group">
             <label>Número de Socio</label>
-            <input type="number" name="member_number" class="form-control" required />
+            <input type="number" id="member_number" name="member_number" class="form-control" required />
+            <small id="memberNumberFeedback" class="text-danger" style="display:none;"></small>
           </div>
           <div class="form-group">
             <label>Nombre Completo</label>
@@ -18,7 +19,7 @@
           </div>
           <div class="form-group">
             <label>CUIL</label>
-            <input type="number" name="cuil" class="form-control" required />
+            <input type="text" name="cuil" id="cuil" class="form-control" required placeholder="00-00000000-0" maxlength="13" />
           </div>
           <div class="form-group">
             <label>Teléfono</label>
@@ -81,18 +82,13 @@
           <h4 class="modal-title" id="editarMiembroLabel">Editar Socio</h4>
         </div>
         <div class="modal-body">
-
-          <div class="form-group">
-            <label>Número de Socio</label>
-            <input type="number" name="member_number" id="edit_member_number" class="form-control" required />
-          </div>
           <div class="form-group">
             <label>Nombre Completo</label>
             <input type="text" name="name" id="edit_name" class="form-control" required />
           </div>
           <div class="form-group">
             <label>CUIL</label>
-            <input type="number" name="cuil" id="edit_cuil" class="form-control" required />
+            <input type="text" name="cuil" id="edit_cuil" class="form-control" required placeholder="00-00000000-0" maxlength="13" />
           </div>
           <div class="form-group">
             <label>Teléfono</label>
@@ -197,3 +193,23 @@
     color: #0056b3;
   }
 </style>
+
+<script>
+  const cuilInput = document.getElementById('cuil');
+
+  cuilInput.addEventListener('input', function(e) {
+    let value = this.value.replace(/\D/g, ''); // solo dígitos
+    if (value.length > 11) value = value.slice(0, 11);
+
+    if (value.length <= 2) {
+      // hasta 2 dígitos, sin guiones
+      this.value = value;
+    } else if (value.length <= 10) {
+      // entre 3 y 10 dígitos: XX-XXXXXXXX
+      this.value = value.slice(0, 2) + '-' + value.slice(2);
+    } else {
+      // 11 dígitos: XX-XXXXXXXX-X
+      this.value = value.slice(0, 2) + '-' + value.slice(2, 10) + '-' + value.slice(10);
+    }
+  });
+</script>

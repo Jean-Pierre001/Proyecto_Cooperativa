@@ -107,7 +107,7 @@ $members = $stmt->fetchAll();
     <div class="form-group">
       <input type="text" name="filterName" class="form-control" placeholder="Filtrar por nombre de miembro" value="<?= htmlspecialchars($filterName) ?>" style="min-width: 300px;" />
     </div>
-    <div class="form-group" style="margin-left:10px;">
+    <div class="form-group">
       <select name="filterStatus" class="form-control">
         <option value="">-- Estado --</option>
         <option value="activo" <?= $filterStatus === 'activo' ? 'selected' : '' ?>>Activo</option>
@@ -132,7 +132,7 @@ $members = $stmt->fetchAll();
         <thead class="thead-dark">
           <tr>
             <th>Nº</th>
-            <th>Número</th>
+            <th>Nº Socio</th>
             <th>Nombre Completo</th>
             <th>CUIL</th>
             <th>Teléfono</th>
@@ -188,14 +188,13 @@ $members = $stmt->fetchAll();
 <script>
   function openEditModal(member) {
     document.getElementById('edit_id').value = member.id;
-    document.getElementById('edit_member_number').value = member.member_number;
     document.getElementById('edit_name').value = member.name;
     document.getElementById('edit_cuil').value = member.cuil;
     document.getElementById('edit_phone').value = member.phone;
     document.getElementById('edit_email').value = member.email;
     document.getElementById('edit_address').value = member.address;
     document.getElementById('edit_entry_date').value = member.entry_date;
-    document.getElementById('edit_exit_date').value = member.exi  t_date;
+    document.getElementById('edit_exit_date').value = member.exit_date;
     document.getElementById('edit_status').value = member.status;
     document.getElementById('edit_work_site').value = member.work_site;
 
@@ -262,6 +261,45 @@ $members = $stmt->fetchAll();
       });
   }
 </script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script>
+  $(document).ready(function(){
+    // Chequeo del número al salir del input
+    $('#member_number').on('blur', function(){
+      var number = $(this).val();
+      if(number) {
+        $.ajax({
+          url: 'members_back/check_member_number.php',
+          method: 'GET',
+          data: { member_number: number },
+          dataType: 'json',
+          success: function(response) {
+            if(response.exists) {
+              $('#memberNumberFeedback').text('Este número de socio ya está en uso. Por favor elija otro.').show();
+            } else {
+              $('#memberNumberFeedback').hide();
+            }
+          },
+          error: function() {
+            $('#memberNumberFeedback').text('Error al verificar el número.').show();
+          }
+        });
+      } else {
+        $('#memberNumberFeedback').hide();
+      }
+    });
+
+    // Evitar envío si número existe
+    $('#modalCreateMember form').on('submit', function(e){
+      if ($('#memberNumberFeedback').is(':visible')) {
+        alert('Corrija el número de socio antes de guardar.');
+        e.preventDefault();
+      }
+    });
+  });
+</script>
+
+
 
 <?php include 'includes/footer.php'; ?>
 <?php include 'includes/scripts.php'; ?>  
