@@ -117,7 +117,6 @@ $members = $stmt->fetchAll();
     <button type="submit" class="btn btn-primary ml-2">Filtrar</button>
   </form>
 
-        
   <div class="top-actions">
     <button class="btn btn-success" data-toggle="modal" data-target="#modalCreateMember">
       <i class="bi bi-person-plus-fill"></i> Agregar Socio
@@ -131,6 +130,7 @@ $members = $stmt->fetchAll();
       <table class="table table-bordered table-hover table-condensed text-center">
         <thead class="thead-dark">
           <tr>
+            <th><input type="checkbox" id="selectAll"></th>
             <th>Nº</th>
             <th>Nº Socio</th>
             <th>Nombre Completo</th>
@@ -148,6 +148,7 @@ $members = $stmt->fetchAll();
           <?php $contador = 1; ?>
           <?php foreach ($members as $member): ?>
             <tr>
+              <td><input type="checkbox" class="select-item" value="<?= $member['id'] ?>"></td>
               <td data-label="Nº"><?= $contador++ ?></td>
               <td data-label="Número"><?= htmlspecialchars($member['member_number']) ?></td>
               <td data-label="Nombre"><?= htmlspecialchars($member['name']) ?></td>
@@ -161,10 +162,10 @@ $members = $stmt->fetchAll();
                 <?= $member['status'] === 'activo' ? 'Activo' : ($member['status'] === 'inactivo' ? 'Inactivo' : ucfirst($member['status'])) ?>
               </td>
               <td data-label="Acciones">
-                <button class="btn btn-warning btn-sm" onclick='openEditModal(<?= json_encode($member) ?>)' title="Editar">
+                <button type="button" class="btn btn-warning btn-sm" onclick='openEditModal(<?= json_encode($member) ?>)' title="Editar">
                   <i class="bi bi-pencil-fill"></i>
                 </button>
-                <button class="btn btn-info btn-sm" onclick='verDocumentos(<?= $member["id"] ?>, <?= json_encode(htmlspecialchars($member["name"])) ?>)' title="Ver documentos">
+                <button type="button" class="btn btn-info btn-sm" onclick='verDocumentos(<?= $member["id"] ?>, <?= json_encode(htmlspecialchars($member["name"])) ?>)' title="Ver documentos">
                   <i class="bi bi-folder2-open"></i>
                 </button>
                 <form method="POST" action="members_back/deleteMember.php" onsubmit="return confirm('¿Eliminar al miembro <?= htmlspecialchars($member['name']) ?>?');" style="display:inline;">
@@ -179,13 +180,64 @@ $members = $stmt->fetchAll();
         </tbody>
       </table>
     </div>
-    <br>
-    <br>
+
+    <div style="margin-top: 15px; text-align: right;">
+      <button id="exportSelected" class="btn btn-success">
+        <i class="bi bi-file-earmark-excel"></i> Exportar seleccionados a Excel
+      </button>
+    </div>
+
   <?php endif; ?>
+
 </div>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
 <script>
+  // Seleccionar/deseleccionar todos
+  $('#selectAll').on('change', function() {
+    $('.select-item').prop('checked', $(this).prop('checked'));
+  });
+
+  // Actualizar selectAll si algún checkbox cambia
+  $('.select-item').on('change', function() {
+    if ($('.select-item:checked').length === $('.select-item').length) {
+      $('#selectAll').prop('checked', true);
+    } else {
+      $('#selectAll').prop('checked', false);
+    }
+  });
+
+  // Exportar seleccionados a Excel (envía ids via POST usando formulario dinámico)
+  $('#exportSelected').on('click', function() {
+    const selected = $('.select-item:checked').map(function() {
+      return $(this).val();
+    }).get();
+
+    if (selected.length === 0) {
+      alert('Por favor seleccioná al menos un socio para exportar.');
+      return;
+    }
+
+    // Crear formulario dinámico para enviar POST
+    const form = $('<form>', {
+      action: 'export_excel.php',
+      method: 'POST'
+    });
+
+    selected.forEach(id => {
+      form.append($('<input>', {
+        type: 'hidden',
+        name: 'selected_ids[]',
+        value: id
+      }));
+    });
+
+    $('body').append(form);
+    form.submit();
+  });
+
+  // Función para abrir modal de editar socio
   function openEditModal(member) {
     document.getElementById('edit_id').value = member.id;
     document.getElementById('edit_name').value = member.name;
@@ -229,6 +281,7 @@ $members = $stmt->fetchAll();
     $('#modalEditMember').modal('show');
   }
 
+  // Función para ver documentos del socio
   function verDocumentos(memberId, memberName) {
     $('#nombreSocioDoc').text(memberName);
     $('#contenedorDocumentos').html('<p class="text-muted">Cargando documentos...</p>');
@@ -261,49 +314,9 @@ $members = $stmt->fetchAll();
       });
   }
 </script>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script>
-  $(document).ready(function(){
-    // Chequeo del número al salir del input
-    $('#member_number').on('blur', function(){
-      var number = $(this).val();
-      if(number) {
-        $.ajax({
-          url: 'members_back/check_member_number.php',
-          method: 'GET',
-          data: { member_number: number },
-          dataType: 'json',
-          success: function(response) {
-            if(response.exists) {
-              $('#memberNumberFeedback').text('Este número de socio ya está en uso. Por favor elija otro.').show();
-            } else {
-              $('#memberNumberFeedback').hide();
-            }
-          },
-          error: function() {
-            $('#memberNumberFeedback').text('Error al verificar el número.').show();
-          }
-        });
-      } else {
-        $('#memberNumberFeedback').hide();
-      }
-    });
-
-    // Evitar envío si número existe
-    $('#modalCreateMember form').on('submit', function(e){
-      if ($('#memberNumberFeedback').is(':visible')) {
-        alert('Corrija el número de socio antes de guardar.');
-        e.preventDefault();
-      }
-    });
-  });
-</script>
-
-
 
 <?php include 'includes/footer.php'; ?>
-<?php include 'includes/scripts.php'; ?>  
-
+<?php include 'includes/scripts.php'; ?>
 
 </body>
 </html>
