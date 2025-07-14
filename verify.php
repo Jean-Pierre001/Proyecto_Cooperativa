@@ -1,25 +1,18 @@
 <?php
-// Solo forzar HTTPS si no estás en localhost
-if ($_SERVER['HTTP_HOST'] !== 'localhost' && (empty($_SERVER['HTTPS']) || $_SERVER['HTTPS'] === 'off')) {
-    header('Location: https://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
-    exit;
-}
+// Evitá problemas con HTTPS en InfinityFree
+$is_https = false;
 
-// Configuración segura de cookies
 session_set_cookie_params([
     'lifetime' => 0,
     'path' => '/',
-    'domain' => $_SERVER['HTTP_HOST'],
-    'secure' => ($_SERVER['HTTP_HOST'] !== 'localhost'),
+    'secure' => $is_https,
     'httponly' => true,
     'samesite' => 'Strict'
 ]);
 session_start();
 
-include 'includes/session.php';
 include_once 'includes/conn.php';
 
-// Control de intentos fallidos
 function registrar_intento_fallido($ip, $pdo) {
     $stmt = $pdo->prepare("INSERT INTO login_attempts (ip, timestamp) VALUES (:ip, NOW())");
     $stmt->execute(['ip' => $ip]);
@@ -36,24 +29,21 @@ if (isset($_POST['login'])) {
     $password = trim($_POST['password']);
     $ip = $_SERVER['REMOTE_ADDR'];
 
-    // Limitar intentos
     if (contar_intentos_fallidos($ip, $pdo) >= 5) {
         $_SESSION['error'] = 'Demasiados intentos fallidos. Intenta más tarde.';
         header('Location: login.php');
         exit();
     }
 
-    // Verificar reCAPTCHA
-    if (!isset($_POST['g-recaptcha-response'])) {
+    if (!isset($_POST['g-recaptcha-response']) || empty($_POST['g-recaptcha-response'])) {
         $_SESSION['error'] = 'Por favor completa el reCAPTCHA.';
         header('Location: login.php');
         exit();
     }
 
     $recaptcha = $_POST['g-recaptcha-response'];
-    $secretKey = '6Lcw6oErAAAAALjcy46f90tadvmIRm3W9SlKENIh'; // 🔒 Reemplaza esto por tu clave secreta real de Google reCAPTCHA
+    $secretKey = '6Lcw6oErAAAAALjcy46f90tadvmIRm3W9SlKENIh'; // Reemplaza por tu clave real
 
-    // Usar file_get_contents() para verificar el captcha
     $verify = file_get_contents("https://www.google.com/recaptcha/api/siteverify?secret={$secretKey}&response={$recaptcha}&remoteip={$ip}");
     $response = json_decode($verify);
 
@@ -70,24 +60,16 @@ if (isset($_POST['login'])) {
 
         if ($user && password_verify($password, $user['password'])) {
             session_regenerate_id(true);
-
-            $_SESSION['user'] = $user;
+            $_SESSION['user'] = $user['id'];
             $_SESSION['user_data'] = $user;
             $_SESSION['ip'] = $_SERVER['REMOTE_ADDR'];
             $_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
 
-            switch ($user['type']) {
-                case 1:
-                    header('Location: index.php');
-                    break;
-                default:
-                    header('Location: index.php');
-                    break;
-            }
+            header('Location: index.php');
             exit();
         } else {
             registrar_intento_fallido($ip, $pdo);
-            usleep(500000); // pequeño delay
+            usleep(500000);
             $_SESSION['error'] = 'Credenciales inválidas.';
             header('Location: login.php');
             exit();
@@ -101,4 +83,3 @@ if (isset($_POST['login'])) {
     header('Location: login.php');
     exit();
 }
-?>

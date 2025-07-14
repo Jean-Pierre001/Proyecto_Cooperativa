@@ -65,9 +65,6 @@
       <div class="modal-content">
         <div class="modal-header">
           <h4 class="modal-title" id="editarMiembroLabel">Editar Socio</h4>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
-            <span aria-hidden="true">&times;</span>
-          </button>
         </div>
         <div class="modal-body">
           <!-- Campos de datos del socio -->

@@ -301,6 +301,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_folder'])) {
     ?>
   </div>
   <br>
+  <br>
 </div>
 
 <?php include 'includes/footer.php'; ?>
@@ -336,6 +337,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_folder'])) {
   });
 
 </script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const sidebarToggle = document.querySelector('.sidebar-toggle');
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', function() {
+        const sidebar = document.getElementById('sidebar');
+        if (sidebar) {
+          sidebar.classList.toggle('sidebar-open');
+        }
+      });
+    }
+  });
+</script>
+
 
 
 

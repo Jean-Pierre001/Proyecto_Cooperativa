@@ -1,9 +1,9 @@
 <?php include 'includes/session.php'; ?>
 
 <?php
-  if (isset($_SESSION['user'])) {
+  if (isset($_SESSION['user_data'])) {
     // Redireccionar según tipo de usuario
-    switch ($_SESSION['user']['type']) {
+    switch ($_SESSION['user_data']['type']) {
       case 1:
         header('location: index.php');
         exit();
@@ -40,15 +40,15 @@
       }
     ?>
     <div class="login-box-body">
-      <h3 class="login-box-msg" style="font-weight:700; margin-bottom: 20px;">Sign in to access the system</h3>
+      <h3 class="login-box-msg" style="font-weight:700; margin-bottom: 20px;">Iniciar sesión para acceder al sistema</h3>
 
       <form action="verify.php" method="POST" novalidate>
         <div class="form-group has-feedback">
-          <input type="email" class="form-control input-lg" name="email" placeholder="Email" required maxlength="100" autocomplete="username">
+          <input type="email" class="form-control input-lg" name="email" placeholder="Correo" required maxlength="100" autocomplete="username">
           <span class="glyphicon glyphicon-envelope form-control-feedback"></span>
         </div>
         <div class="form-group has-feedback">
-          <input type="password" class="form-control input-lg" name="password" placeholder="Password" required maxlength="100" autocomplete="current-password">
+          <input type="password" class="form-control input-lg" name="password" placeholder="Contraseña" required maxlength="100" autocomplete="current-password">
           <span class="glyphicon glyphicon-lock form-control-feedback"></span>
         </div>
 

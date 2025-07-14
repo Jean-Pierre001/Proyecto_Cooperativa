@@ -64,6 +64,9 @@ include 'includes/navbar.php';
 $msg = '';
 $msg_error = '';
 
+// Incluir conexión PDO (si no está ya incluido arriba)
+require_once 'includes/conn.php';
+
 if (isset($_GET['delete']) && isset($_GET['type'])) {
     $delete_name = basename($_GET['delete']);
     $type = $_GET['type'];
@@ -74,6 +77,16 @@ if (isset($_GET['delete']) && isset($_GET['type'])) {
     } else {
         if ($type === 'file' && is_file($delete_path)) {
             if (unlink($delete_path)) {
+                // Si la carpeta es uploads/, eliminar registro en member_documents
+                if (strpos($folder, 'uploads/') === 0) {
+                    // $folder_subpath ya está calculado arriba y es relativo a uploads/
+                    $relativePath = $folder_subpath . '/' . $delete_name;
+
+                    // Preparar y ejecutar la eliminación con PDO
+                    $stmt = $pdo->prepare("DELETE FROM member_documents WHERE file_path = ?");
+                    $stmt->execute([$relativePath]);
+                }
+
                 $msg = "Archivo <strong>$delete_name</strong> eliminado correctamente.";
             } else {
                 $msg_error = "Error al eliminar archivo.";
@@ -94,6 +107,7 @@ if (isset($_GET['delete']) && isset($_GET['type'])) {
         }
     }
 }
+
 
 // --- CREAR NUEVA CARPETA ---
 if (isset($_POST['new_folder']) && !empty($_POST['folder_name'])) {
