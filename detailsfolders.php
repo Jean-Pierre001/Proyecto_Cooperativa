@@ -79,14 +79,10 @@ if (isset($_GET['delete']) && isset($_GET['type'])) {
             if (unlink($delete_path)) {
                 // Si la carpeta es uploads/, eliminar registro en member_documents
                 if (strpos($folder, 'uploads/') === 0) {
-                    // $folder_subpath ya está calculado arriba y es relativo a uploads/
                     $relativePath = $folder_subpath . '/' . $delete_name;
-
-                    // Preparar y ejecutar la eliminación con PDO
                     $stmt = $pdo->prepare("DELETE FROM member_documents WHERE file_path = ?");
                     $stmt->execute([$relativePath]);
                 }
-
                 $msg = "Archivo <strong>$delete_name</strong> eliminado correctamente.";
             } else {
                 $msg_error = "Error al eliminar archivo.";
@@ -107,7 +103,6 @@ if (isset($_GET['delete']) && isset($_GET['type'])) {
         }
     }
 }
-
 
 // --- CREAR NUEVA CARPETA ---
 if (isset($_POST['new_folder']) && !empty($_POST['folder_name'])) {
@@ -161,96 +156,113 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
   <style>
     body {
       padding-top: 50px;
-      background-color: #fefefe;
+      background-color: #e8f0fe;
     }
     .content-wrapper {
       margin-left: 230px;
       padding: 30px;
     }
-    .item-grid {
+    .folder-grid {
       display: flex;
       flex-wrap: wrap;
       gap: 25px;
     }
-    .item-box {
-      background: #ffffff;
-      width: 160px;
-      height: 160px;
-      border-radius: 15px;
+    .folder-card {
+      background: #ffffff; 
+      width: 180px; 
+      height: 180px;
+      border-radius: 15px; 
       box-shadow: 0 8px 16px rgba(0,0,0,0.08);
-      text-align: center;
-      padding: 20px 10px 50px 10px;
-      overflow: hidden;
-      position: relative;
-      word-break: break-word;
+      transition: all 0.3s ease; 
+      text-align: center; 
+      padding: 20px 10px;
+      cursor: pointer; 
+      position: relative; 
+      overflow: hidden; 
+      text-decoration: none;
+
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      align-items: center;
+      justify-content: start;
+      padding-bottom: 60px; /* espacio para botones */
     }
-    .item-box.folder:hover {
-      background: #e6f2ff;
+
+    .folder-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 24px rgba(0,0,0,0.15);
+      background: linear-gradient(to bottom, #fff7e6, #ffe0b2);
     }
-    .item-box.file:hover {
-      background: #fff5e6;
+
+    .folder-icon { 
+      font-size: 55px; 
+      color: #f1c40f; 
+      margin-bottom: 10px; 
     }
-    .item-icon {
-      font-size: 45px;
-      color: #2980b9;
+    .folder-name { 
+      font-size: 16px; 
+      font-weight: 600; 
+      color: #2c3e50; 
+      word-break: break-word;
       margin-bottom: 10px;
+      text-align: center;
     }
-    .item-name {
-      font-size: 15px;
-      font-weight: 500;
-      color: #2c3e50;
-      margin-bottom: 10px;
-      overflow-wrap: break-word;
-    }
-    .item-name a {
-      color: inherit;
-      text-decoration: none;
-    }
-    .item-name a:hover {
-      text-decoration: underline;
-    }
-    .action-buttons {
+
+    .folder-actions {
       position: absolute;
-      bottom: 10px;
-      left: 0;
-      right: 0;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #f9f9f9;
+      padding: 6px 14px;
+      border-radius: 12px;
       display: flex;
       justify-content: center;
-      gap: 10px;
+      gap: 15px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+      pointer-events: auto; /* para clicks */
+      cursor: default;
+      user-select: none;
     }
-    /* Botón eliminar simplificado */
-    .action-buttons a {
-      background-color: #e74c3c;
-      border: none;
-      color: white;
-      width: 36px;
-      height: 36px;
-      font-size: 18px;
-      border-radius: 50%;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-      transition: background-color 0.3s ease;
+
+    .folder-actions form,
+    .folder-actions a {
+      margin: 0;
+      padding: 0;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      text-decoration: none;
-      padding: 0;
-    }
-    .action-buttons a:hover {
-      background-color: #c0392b;
-      box-shadow: 0 4px 14px rgba(0,0,0,0.2);
-    }
-    .action-buttons a .glyphicon {
-      margin: 0;
+      color: #f0ad4e;
       font-size: 18px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      outline: none;
+      text-decoration: none;
+      transition: color 0.2s ease;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
     }
 
-    .breadcrumb {
-      background: none;
-      padding-left: 0;
+    .folder-actions form button,
+    .folder-actions a.delete-btn {
+      color: #d9534f;
     }
+
+    .folder-actions form button:hover,
+    .folder-actions a.delete-btn:hover {
+      color: #d47a0a;
+    }
+
+    .folder-actions form button {
+      border: none;
+      background: none;
+      padding: 0;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
   </style>
 </head>
 <body>
@@ -288,27 +300,22 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
 
   <form method="post" class="form-inline" style="margin-bottom: 20px;">
     <div class="form-group">
-      <label>Crear Carpeta:</label>
       <input type="text" name="folder_name" class="form-control" placeholder="Nombre de carpeta" required>
     </div>
-    <button type="submit" name="new_folder" class="btn btn-primary">Crear</button>
+    <button type="submit" name="new_folder" class="btn btn-success">Crear Carpeta</button>
   </form>
 
   <form method="post" enctype="multipart/form-data" class="form-inline" style="margin-bottom: 30px;">
-  <div class="form-group">
-    <label>Subir Archivo(s):</label>
-    <input type="file" name="file[]" class="form-control" multiple required>
-  </div>
-  <button type="submit" name="upload" class="btn btn-success">Subir</button>
+    <div class="form-group">
+      <input type="file" name="file[]" class="form-control" multiple required>
+    </div>
+    <button type="submit" name="upload" class="btn btn-primary">Subir Archivo(s)</button>
   </form>
 
-
   <?php
-  // Listar carpetas y archivos por separado
   $items = scandir($target_path);
   $folders = [];
   $files = [];
-
   foreach ($items as $item) {
     if ($item === '.' || $item === '..') continue;
     $full_path = $target_path . DIRECTORY_SEPARATOR . $item;
@@ -322,18 +329,26 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
 
   <?php if (count($folders) > 0): ?>
     <h3>Carpetas</h3>
-    <div class="item-grid">
+    <div class="folder-grid">
       <?php foreach ($folders as $folder_name): ?>
         <?php 
           $link = 'detailsfolders.php?folder=' . urlencode(($folder ? $folder . '/' : '') . $folder_name);
         ?>
-        <div class="item-box folder">
-          <div class="item-icon"><span class="glyphicon glyphicon-folder-close"></span></div>
-          <div class="item-name"><a href="<?php echo $link; ?>"><?php echo htmlspecialchars($folder_name); ?></a></div>
-          <div class="action-buttons">
-            <a href="detailsfolders.php?folder=<?php echo urlencode($folder); ?>&delete=<?php echo urlencode($folder_name); ?>&type=folder" onclick="return confirm('¿Estás seguro que deseas eliminar <?php echo htmlspecialchars($folder_name); ?>?');" title="Eliminar">
-              <span class="glyphicon glyphicon-trash"></span>
-            </a>
+        <div style="position: relative; display: inline-block; margin: 10px;">
+          <a href="<?= $link ?>" class="folder-card">
+            <div class="folder-icon"><span class="glyphicon glyphicon-folder-open"></span></div>
+            <div class="folder-name"><?= htmlspecialchars($folder_name) ?></div>
+          </a>
+
+          <div class="folder-actions">
+            <form method="GET" action="detailsfolders.php" onsubmit="return confirm('¿Eliminar carpeta <?= addslashes(htmlspecialchars($folder_name)) ?>?');" style="display:inline;">
+              <input type="hidden" name="folder" value="<?= htmlspecialchars($folder) ?>">
+              <input type="hidden" name="delete" value="<?= htmlspecialchars($folder_name) ?>">
+              <input type="hidden" name="type" value="folder">
+              <button type="submit" title="Eliminar carpeta">
+                <span class="glyphicon glyphicon-trash"></span>
+              </button>
+            </form>
           </div>
         </div>
       <?php endforeach; ?>
@@ -342,18 +357,26 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
 
   <?php if (count($files) > 0): ?>
     <h3>Archivos</h3>
-    <div class="item-grid">
+    <div class="folder-grid">
       <?php foreach ($files as $file_name): ?>
         <?php 
           $link = 'detailsfolders.php?folder=' . urlencode($folder) . '&download=' . urlencode($file_name);
         ?>
-        <div class="item-box file">
-          <div class="item-icon"><span class="glyphicon glyphicon-file"></span></div>
-          <div class="item-name"><a href="<?php echo $link; ?>"><?php echo htmlspecialchars($file_name); ?></a></div>
-          <div class="action-buttons">
-            <a href="detailsfolders.php?folder=<?php echo urlencode($folder); ?>&delete=<?php echo urlencode($file_name); ?>&type=file" onclick="return confirm('¿Estás seguro que deseas eliminar <?php echo htmlspecialchars($file_name); ?>?');" title="Eliminar">
-              <span class="glyphicon glyphicon-trash"></span>
-            </a>
+        <div style="position: relative; display: inline-block; margin: 10px;">
+          <a href="<?= $link ?>" class="folder-card">
+            <div class="folder-icon"><span class="glyphicon glyphicon-file"></span></div>
+            <div class="folder-name"><?= htmlspecialchars($file_name) ?></div>
+          </a>
+
+          <div class="folder-actions">
+            <form method="GET" action="detailsfolders.php" onsubmit="return confirm('¿Eliminar archivo <?= addslashes(htmlspecialchars($file_name)) ?>?');" style="display:inline;">
+              <input type="hidden" name="folder" value="<?= htmlspecialchars($folder) ?>">
+              <input type="hidden" name="delete" value="<?= htmlspecialchars($file_name) ?>">
+              <input type="hidden" name="type" value="file">
+              <button type="submit" title="Eliminar archivo">
+                <span class="glyphicon glyphicon-trash"></span>
+              </button>
+            </form>
           </div>
         </div>
       <?php endforeach; ?>
@@ -363,6 +386,22 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
 </div>
 
 <?php include 'includes/footer.php'; ?>
+
+<script>
+  // Evitar hover de carpeta cuando mouse está sobre botones de acciones
+  document.querySelectorAll('.folder-actions').forEach(actions => {
+    const card = actions.previousElementSibling; // el <a> con .folder-card
+
+    actions.addEventListener('mouseenter', () => {
+      if(card) card.style.pointerEvents = 'none';
+      actions.style.pointerEvents = 'auto';
+    });
+
+    actions.addEventListener('mouseleave', () => {
+      if(card) card.style.pointerEvents = 'auto';
+    });
+  });
+</script>
 
 </body>
 </html>

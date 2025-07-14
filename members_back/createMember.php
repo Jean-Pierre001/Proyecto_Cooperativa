@@ -1,89 +1,87 @@
 <?php
+include '../includes/session.php';
+if (!isset($_SESSION['user'])) {
+    header('location: ../login.php');
+    exit();
+}
 require_once '../includes/conn.php';
-session_start();
 
-try {
-    // Obtener datos del formulario
+function sanitizeFolderName($name) {
+    $name = strtolower(trim($name));
+    $name = preg_replace('/[^a-z0-9]+/i', '_', $name);
+    return $name;
+}
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    $member_number = $_POST['member_number'] ?? '';
     $name = $_POST['name'] ?? '';
-    $dni = $_POST['dni'] ?? '';
-    $phone = $_POST['phone'] ?? null;
-    $email = $_POST['email'] ?? null;
-    $address = $_POST['address'] ?? null;
+    $cuil = $_POST['cuil'] ?? '';
+    $phone = $_POST['phone'] ?? '';
+    $email = $_POST['email'] ?? '';
+    $address = $_POST['address'] ?? '';
     $entry_date = $_POST['entry_date'] ?? null;
-    $status = $_POST['status'] ?? 'active';
-    $contributions = $_POST['contributions'] ?? 0.00;
+    $exit_date = $_POST['exit_date'] ?? null;
+    $status = $_POST['status'] ?? 'activo';
+    $work_site = $_POST['work_site'] ?? '';
 
-    // Validaciones básicas
-    if (empty($name) || empty($dni)) {
-        $_SESSION['error'] = 'Nombre y DNI son obligatorios.';
-        header('Location: ../members.php');
-        exit();
-    }
+    try {
+        // Insertar socio
+        $stmt = $pdo->prepare("INSERT INTO members (member_number, name, cuil, phone, email, address, entry_date, exit_date, status, work_site) VALUES (:member_number, :name, :cuil, :phone, :email, :address, :entry_date, :exit_date, :status, :work_site)");
+        $stmt->execute([
+            ':member_number' => $member_number,
+            ':name' => $name,
+            ':cuil' => $cuil,
+            ':phone' => $phone,
+            ':email' => $email,
+            ':address' => $address,
+            ':entry_date' => $entry_date ?: null,
+            ':exit_date' => $exit_date ?: null,
+            ':status' => $status,
+            ':work_site' => $work_site
+        ]);
 
-    // Insertar socio en la base de datos
-    $stmt = $pdo->prepare("INSERT INTO members (name, dni, phone, email, address, entry_date, status, contributions) 
-                           VALUES (:name, :dni, :phone, :email, :address, :entry_date, :status, :contributions)");
-    $stmt->execute([
-        ':name' => $name,
-        ':dni' => $dni,
-        ':phone' => $phone,
-        ':email' => $email,
-        ':address' => $address,
-        ':entry_date' => $entry_date,
-        ':status' => $status,
-        ':contributions' => $contributions
-    ]);
+        $member_id = $pdo->lastInsertId();
 
-    $member_id = $pdo->lastInsertId();
+        // Crear carpeta para archivos
+        $folder_name = sanitizeFolderName($name);
+        $target_dir = "../uploads/$work_site/$folder_name/";
 
-    // Sanitizar el nombre para usarlo como carpeta
-    function sanitizeFolderName($str) {
-        $str = strtolower($str); // minúsculas
-        $str = trim($str);       // quitar espacios al inicio y fin
-        $str = str_replace(' ', '_', $str); // espacios por guiones bajos
-        $str = preg_replace('/[^a-z0-9_-]/', '', $str); // quitar caracteres no válidos
-        return $str;
-    }
+        if (!file_exists($target_dir)) {
+            mkdir($target_dir, 0777, true); 
+        }
 
-    $safeName = sanitizeFolderName($name);
+        // Subir archivos
+        if (isset($_FILES['documents']) && !empty($_FILES['documents']['name'][0])) {
+            foreach ($_FILES['documents']['tmp_name'] as $key => $tmp_name) {
+                if ($_FILES['documents']['error'][$key] === UPLOAD_ERR_OK) {
+                    $file_name = basename($_FILES['documents']['name'][$key]);
+                    $timestamp = time();
+                    $new_file_name = $timestamp . '_' . $file_name;
+                    $file_path = $target_dir . $new_file_name;
 
-    $uploadBaseDir = __DIR__ . '/../uploads/';
+                    if (move_uploaded_file($tmp_name, $file_path)) {
+                        $rel_path = "$work_site/$folder_name/$new_file_name";
 
-    // Crear carpeta usando el nombre sanitizado
-    $memberUploadDir = $uploadBaseDir . $safeName . '/';
-
-    if (!is_dir($memberUploadDir)) {
-        mkdir($memberUploadDir, 0755, true);
-    }
-
-    // Manejar documentos subidos
-    if (!empty($_FILES['documents']['name'][0])) {
-        foreach ($_FILES['documents']['name'] as $index => $filename) {
-            $tmpName = $_FILES['documents']['tmp_name'][$index];
-            $fileSize = $_FILES['documents']['size'][$index];
-
-            if ($fileSize > 0 && is_uploaded_file($tmpName)) {
-                $safeFileName = time() . '_' . basename($filename);
-                $destination = $memberUploadDir . $safeFileName;
-
-                if (move_uploaded_file($tmpName, $destination)) {
-                    // Guardar ruta relativa usando el nombre sanitizado (no el id)
-                    $relativePath = $safeName . '/' . $safeFileName;
-
-                    $stmt = $pdo->prepare("INSERT INTO member_documents (member_id, file_path) VALUES (:member_id, :file_path)");
-                    $stmt->execute([
-                        ':member_id' => $member_id,
-                        ':file_path' => $relativePath
-                    ]);
+                        $insertDoc = $pdo->prepare("INSERT INTO member_documents (member_id, file_path) VALUES (:member_id, :file_path)");
+                        $insertDoc->execute([
+                            ':member_id' => $member_id,
+                            ':file_path' => $rel_path
+                        ]);
+                    }
                 }
             }
         }
+
+        $_SESSION['success'] = "Socio creado correctamente.";
+        header('location: ../members.php');
+        exit();
+
+    } catch (PDOException $e) {
+        $_SESSION['error'] = "Error al agregar socio: " . $e->getMessage();
+        header('location: ../members.php');
+        exit();
     }
-
-    $_SESSION['success'] = 'Socio creado correctamente.';
-} catch (Exception $e) {
-    $_SESSION['error'] = 'Error al crear socio: ' . $e->getMessage();
+} else {
+    header('location: ../members.php');
+    exit();
 }
-
-header('Location: ../members.php');
-exit();

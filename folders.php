@@ -171,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_folder'])) {
   <h2>Gestor de Carpetas</h2>
 
   <!-- Crear carpeta -->
-  <form method="POST" class="form-inline" style="margin-bottom: 30px;">
+  <form method="POST" class="form-inline" style="margin-bottom: 10px;">
     <div class="form-group">
       <input type="text" name="folder_name" class="form-control" placeholder="Nombre nueva carpeta" required style="min-width: 300px;">
     </div>
@@ -198,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_folder'])) {
   <?php endif; ?>
 
   <!-- Lista de carpetas -->
-  <h3 style="margin-top: 50px;">Carpetas</h3>
+  <h3 style="margin-top: 50px;">Carpetas Personalizadas</h3>
   <div class="folder-grid">
     <?php
       $buscar = $_GET['buscar'] ?? '';
@@ -250,7 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_folder'])) {
   </div>
 
   <!-- Sección uploads -->
-  <h3 style="margin-top: 50px;">Carpetas de Socios</h3>
+  <h3 style="margin-top: 50px;">Carpetas de Obras (Contiene los archivos de socios)</h3>
 
   <!-- Buscar carpeta de socios -->
   <form method="GET" class="form-inline" style="margin-bottom: 20px;">

@@ -10,8 +10,8 @@ include 'includes/navbar.php';
 require_once 'includes/conn.php';
 
 $filterName = $_POST['filterName'] ?? '';
+$filterStatus = $_POST['filterStatus'] ?? '';
 
-// Consulta con filtro
 $sql = "SELECT * FROM members WHERE 1=1 ";
 $params = [];
 
@@ -20,9 +20,15 @@ if ($filterName !== '') {
     $params[':name'] = $filterName . '%';
 }
 
+if ($filterStatus !== '') {
+    $sql .= " AND status = :status ";
+    $params[':status'] = $filterStatus;
+}
+
 $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $members = $stmt->fetchAll();
+
 ?>
 
 <!DOCTYPE html>
@@ -33,7 +39,6 @@ $members = $stmt->fetchAll();
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
-    /* tus estilos actuales */
     body { padding-top: 50px; background-color: #ecf0f1; }
     .content-wrapper { margin-left: 230px; padding: 20px; min-height: 90vh; }
     .top-actions { margin-bottom: 20px; text-align: right; }
@@ -100,11 +105,19 @@ $members = $stmt->fetchAll();
 
   <form method="POST" class="form-inline mb-3">
     <div class="form-group">
-      <input type="text" name="filterName" class="form-control" placeholder="Filtrar por nombre de miembro" value="<?= htmlspecialchars($filterName) ?>" style="min-width: 500px;" />
+      <input type="text" name="filterName" class="form-control" placeholder="Filtrar por nombre de miembro" value="<?= htmlspecialchars($filterName) ?>" style="min-width: 300px;" />
+    </div>
+    <div class="form-group" style="margin-left:10px;">
+      <select name="filterStatus" class="form-control">
+        <option value="">-- Estado --</option>
+        <option value="activo" <?= $filterStatus === 'activo' ? 'selected' : '' ?>>Activo</option>
+        <option value="inactivo" <?= $filterStatus === 'inactivo' ? 'selected' : '' ?>>Inactivo</option>
+      </select>
     </div>
     <button type="submit" class="btn btn-primary ml-2">Filtrar</button>
   </form>
 
+        
   <div class="top-actions">
     <button class="btn btn-success" data-toggle="modal" data-target="#modalCreateMember">
       <i class="bi bi-person-plus-fill"></i> Agregar Socio
@@ -118,37 +131,35 @@ $members = $stmt->fetchAll();
       <table class="table table-bordered table-hover table-condensed text-center">
         <thead class="thead-dark">
           <tr>
-            <th>Nombre</th>
-            <th>DNI</th>
+            <th>Nº</th>
+            <th>Número</th>
+            <th>Nombre Completo</th>
+            <th>CUIL</th>
             <th>Teléfono</th>
             <th>Email</th>
             <th>Dirección</th>
-            <th>Fecha de Ingreso</th>
+            <th>Fecha Ingreso</th>
+            <th>Fecha Egreso</th>
             <th>Estado</th>
-            <th>Aportes</th>
             <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
+          <?php $contador = 1; ?>
           <?php foreach ($members as $member): ?>
             <tr>
+              <td data-label="Nº"><?= $contador++ ?></td>
+              <td data-label="Número"><?= htmlspecialchars($member['member_number']) ?></td>
               <td data-label="Nombre"><?= htmlspecialchars($member['name']) ?></td>
-              <td data-label="DNI"><?= htmlspecialchars($member['dni']) ?></td>
+              <td data-label="CUIL"><?= htmlspecialchars($member['cuil']) ?></td>
               <td data-label="Teléfono"><?= htmlspecialchars($member['phone']) ?></td>
               <td data-label="Email"><?= htmlspecialchars($member['email']) ?></td>
               <td data-label="Dirección"><?= htmlspecialchars($member['address']) ?></td>
-              <td data-label="Fecha de Ingreso"><?= htmlspecialchars($member['entry_date']) ?></td>
+              <td data-label="Ingreso"><?= htmlspecialchars($member['entry_date']) ?></td>
+              <td data-label="Egreso"><?= htmlspecialchars($member['exit_date']) ?></td>
               <td data-label="Estado">
-                <?php 
-                  switch ($member['status']) {
-                    case 'active': echo 'Activo'; break;
-                    case 'inactive': echo 'Inactivo'; break;
-                    case 'retired': echo 'Jubilado'; break;
-                    default: echo htmlspecialchars($member['status']);
-                  }
-                ?>
+                <?= $member['status'] === 'activo' ? 'Activo' : ($member['status'] === 'inactivo' ? 'Inactivo' : ucfirst($member['status'])) ?>
               </td>
-              <td data-label="Aportes">$<?= number_format($member['contributions'], 2) ?></td>
               <td data-label="Acciones">
                 <button class="btn btn-warning btn-sm" onclick='openEditModal(<?= json_encode($member) ?>)' title="Editar">
                   <i class="bi bi-pencil-fill"></i>
@@ -168,6 +179,8 @@ $members = $stmt->fetchAll();
         </tbody>
       </table>
     </div>
+    <br>
+    <br>
   <?php endif; ?>
 </div>
 
@@ -175,14 +188,16 @@ $members = $stmt->fetchAll();
 <script>
   function openEditModal(member) {
     document.getElementById('edit_id').value = member.id;
+    document.getElementById('edit_member_number').value = member.member_number;
     document.getElementById('edit_name').value = member.name;
-    document.getElementById('edit_dni').value = member.dni;
+    document.getElementById('edit_cuil').value = member.cuil;
     document.getElementById('edit_phone').value = member.phone;
     document.getElementById('edit_email').value = member.email;
     document.getElementById('edit_address').value = member.address;
     document.getElementById('edit_entry_date').value = member.entry_date;
+    document.getElementById('edit_exit_date').value = member.exi  t_date;
     document.getElementById('edit_status').value = member.status;
-    document.getElementById('edit_contributions').value = member.contributions;
+    document.getElementById('edit_work_site').value = member.work_site;
 
     const docsDiv = document.getElementById('documentos_actuales');
     docsDiv.innerHTML = '<p class="text-muted">Cargando documentos...</p>';
@@ -233,7 +248,7 @@ $members = $stmt->fetchAll();
           html += `<tr>
             <td>${doc.document_type ? doc.document_type + ': ' : ''}${doc.file_path}</td>
             <td>
-              <a href="uploads/${doc.file_path}" target="_blank" class="btn btn-sm btn-primary" title="Descargar documento">
+              <a href="uploads/${doc.file_path}" download class="btn btn-sm btn-primary">
                 <i class="bi bi-download"></i> Descargar
               </a>
             </td>
@@ -249,7 +264,8 @@ $members = $stmt->fetchAll();
 </script>
 
 <?php include 'includes/footer.php'; ?>
-<?php include 'includes/scripts.php'; ?>
+<?php include 'includes/scripts.php'; ?>  
+
 
 </body>
 </html>

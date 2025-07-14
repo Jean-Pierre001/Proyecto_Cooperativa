@@ -1,105 +1,61 @@
 <?php
+include '../includes/session.php';
 require_once '../includes/conn.php';
-session_start();
 
-try {
-    $id = $_POST['id'] ?? null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    try {
+        $stmt = $pdo->prepare("UPDATE members SET member_number = :member_number, name = :name, cuil = :cuil, phone = :phone, email = :email, address = :address, entry_date = :entry_date, exit_date = :exit_date, status = :status, work_site = :work_site WHERE id = :id");
 
-    if (!$id) {
-        $_SESSION['error'] = 'ID de miembro no proporcionado.';
-        header('Location: ../members.php');
-        exit();
-    }
+        $stmt->execute([
+            ':id' => $_POST['id'],
+            ':member_number' => $_POST['member_number'],
+            ':name' => $_POST['name'],
+            ':cuil' => $_POST['cuil'],
+            ':phone' => $_POST['phone'],
+            ':email' => $_POST['email'],
+            ':address' => $_POST['address'],
+            ':entry_date' => $_POST['entry_date'] ?: null,
+            ':exit_date' => $_POST['exit_date'] ?: null,
+            ':status' => $_POST['status'],
+            ':work_site' => $_POST['work_site']
+        ]);
 
-    // Datos actualizados del formulario
-    $name = $_POST['name'] ?? '';
-    $dni = $_POST['dni'] ?? '';
-    $phone = $_POST['phone'] ?? null;
-    $email = $_POST['email'] ?? null;
-    $address = $_POST['address'] ?? null;
-    $entry_date = $_POST['entry_date'] ?? null;
-    $status = $_POST['status'] ?? 'active';
-    $contributions = $_POST['contributions'] ?? 0.00;
-
-    // Validación básica
-    if (empty($name) || empty($dni)) {
-        $_SESSION['error'] = 'Nombre y DNI son obligatorios.';
-        header('Location: ../members.php');
-        exit();
-    }
-
-    // Actualizar datos del socio
-    $stmt = $pdo->prepare("UPDATE members SET name = :name, dni = :dni, phone = :phone, email = :email, address = :address, 
-                            entry_date = :entry_date, status = :status, contributions = :contributions WHERE id = :id");
-    $stmt->execute([
-        ':name' => $name,
-        ':dni' => $dni,
-        ':phone' => $phone,
-        ':email' => $email,
-        ':address' => $address,
-        ':entry_date' => $entry_date,
-        ':status' => $status,
-        ':contributions' => $contributions,
-        ':id' => $id
-    ]);
-
-    // -------------------- ELIMINAR DOCUMENTOS -------------------------
-    if (!empty($_POST['delete_docs']) && is_array($_POST['delete_docs'])) {
-        $delete_ids = $_POST['delete_docs'];
-        $placeholders = implode(',', array_fill(0, count($delete_ids), '?'));
-
-        // Obtener rutas de archivos a eliminar
-        $stmtFiles = $pdo->prepare("SELECT file_path FROM member_documents WHERE id IN ($placeholders)");
-        $stmtFiles->execute($delete_ids);
-        $files = $stmtFiles->fetchAll(PDO::FETCH_COLUMN);
-
-        foreach ($files as $file) {
-            $filePath = __DIR__ . '/../uploads/' . $file;
-            if (file_exists($filePath)) {
-                unlink($filePath);
+        // Eliminar documentos seleccionados
+        if (!empty($_POST['delete_docs'])) {
+            $deleteStmt = $pdo->prepare("DELETE FROM member_documents WHERE id = :id");
+            foreach ($_POST['delete_docs'] as $docId) {
+                $deleteStmt->execute([':id' => $docId]);
             }
         }
 
-        // Borrar registros de documentos en BD
-        $stmtDelete = $pdo->prepare("DELETE FROM member_documents WHERE id IN ($placeholders)");
-        $stmtDelete->execute($delete_ids);
-    }
+        // Carpeta según obra
+        $target_dir = '../uploads/' . $_POST['work_site'] . '/';
+        if (!file_exists($target_dir)) mkdir($target_dir, 0777, true);
 
-    // -------------------- SUBIR NUEVOS DOCUMENTOS -------------------------
-    if (!empty($_FILES['documents']['name'][0])) {
-        $uploadBaseDir = __DIR__ . '/../uploads/';  // Carpeta base uploads/
-        $memberUploadDir = $uploadBaseDir . $id . '/';  // Carpeta específica del socio
-
-        if (!is_dir($memberUploadDir)) {
-            mkdir($memberUploadDir, 0755, true);
-        }
-
-        foreach ($_FILES['documents']['name'] as $index => $filename) {
-            $tmpName = $_FILES['documents']['tmp_name'][$index];
-            $fileSize = $_FILES['documents']['size'][$index];
-
-            if ($fileSize > 0 && is_uploaded_file($tmpName)) {
-                $safeName = time() . '_' . basename($filename);
-                $destination = $memberUploadDir . $safeName;
-
-                if (move_uploaded_file($tmpName, $destination)) {
-                    // Guardamos la ruta relativa con carpeta del socio para luego poder acceder fácilmente
-                    $relativePath = $id . '/' . $safeName;
-
-                    $stmt = $pdo->prepare("INSERT INTO member_documents (member_id, file_path) VALUES (:member_id, :file_path)");
-                    $stmt->execute([
-                        ':member_id' => $id,
-                        ':file_path' => $relativePath
-                    ]);
+        // Subir nuevos documentos
+        if (isset($_FILES['documents']) && !empty($_FILES['documents']['tmp_name'][0])) {
+            foreach ($_FILES['documents']['tmp_name'] as $key => $tmp_name) {
+                if ($_FILES['documents']['error'][$key] === UPLOAD_ERR_OK) {
+                    $file_name = basename($_FILES['documents']['name'][$key]);
+                    $file_path = $target_dir . time() . '_' . $file_name;
+                    if (move_uploaded_file($tmp_name, $file_path)) {
+                        $rel_path = $_POST['work_site'] . '/' . basename($file_path);
+                        $insertStmt = $pdo->prepare("INSERT INTO member_documents (member_id, file_path) VALUES (:member_id, :file_path)");
+                        $insertStmt->execute([
+                            ':member_id' => $_POST['id'],
+                            ':file_path' => $rel_path
+                        ]);
+                    }
                 }
             }
         }
-    }
 
-    $_SESSION['success'] = 'Socio actualizado correctamente.';
-} catch (Exception $e) {
-    $_SESSION['error'] = 'Error al actualizar: ' . $e->getMessage();
+        $_SESSION['success'] = "Socio actualizado correctamente.";
+    } catch (Exception $e) {
+        $_SESSION['error'] = "Error al actualizar socio: " . $e->getMessage();
+    }
 }
 
 header('Location: ../members.php');
 exit();
+?>
