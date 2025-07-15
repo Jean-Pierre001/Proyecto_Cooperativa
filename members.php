@@ -186,7 +186,8 @@ $members = $stmt->fetchAll();
         <i class="bi bi-file-earmark-excel"></i> Exportar seleccionados a Excel
       </button>
     </div>
-
+    <br>
+    <br>
   <?php endif; ?>
 
 </div>
