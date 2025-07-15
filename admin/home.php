@@ -45,6 +45,30 @@ if (!isset($_SESSION['user']) || $_SESSION['user_data']['type'] != 1) {
 		}
 	?>
 
+ <div style="display: flex; gap: 40px; justify-content: center; flex-wrap: wrap;">
+
+    <div style="text-align: center;">
+      <h2>Respaldo de los Archivos en la Nube</h2>
+      <form method="POST" action="../backup_all.php" style="margin-bottom: 20px;">
+        <button type="submit" class="btn btn-danger">
+          <span class="glyphicon glyphicon-hdd"></span> Hacer respaldo TOTAL a Dropbox
+        </button>
+      </form>
+    </div>
+
+    <div style="text-align: center;">
+      <h2>Respaldo de la Base de Datos en la Nube</h2>
+      <form method="POST" action="../backup_db.php" style="margin-bottom: 20px;">
+        <button type="submit" class="btn btn-info">
+          <span class="glyphicon glyphicon-save"></span> Respaldar Base de Datos a Dropbox
+        </button>
+      </form>
+    </div>
+
+  </div>
+
+
+
   </div>
 
   <?php include 'includes/footer.php'; ?>

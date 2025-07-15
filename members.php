@@ -13,6 +13,7 @@ $filterName = $_POST['filterName'] ?? '';
 $filterStatus = $_POST['filterStatus'] ?? '';
 $filterFromDate = $_POST['filterFromDate'] ?? '';
 $filterToDate = $_POST['filterToDate'] ?? '';
+$filterWorkSite = $_POST['filterWorkSite'] ?? ''; // <-- Aquí está bien
 
 $sql = "SELECT * FROM members WHERE 1=1 ";
 $params = [];
@@ -37,7 +38,12 @@ if ($filterToDate !== '') {
     $params[':toDate'] = $filterToDate;
 }
 
-$stmt = $pdo->prepare($sql);
+if ($filterWorkSite !== '') {
+    $sql .= " AND work_site = :work_site ";
+    $params[':work_site'] = $filterWorkSite;
+}
+
+$stmt = $pdo->prepare($sql);  // <-- AHORA sí con todo correcto
 $stmt->execute($params);
 $members = $stmt->fetchAll();
 
@@ -115,9 +121,19 @@ $members = $stmt->fetchAll();
     <?php unset($_SESSION['success']); ?>
   <?php endif; ?>
 
+  <h3>Filtros</h3>
+
   <form method="POST" class="form-inline mb-3">
     <div class="form-group" style="margin-right:10px;">
       <input type="text" name="filterName" class="form-control" placeholder="Filtrar por nombre de miembro" value="<?= htmlspecialchars($filterName) ?>" style="min-width: 300px;" />
+    </div>
+    <div class="form-group" style="margin-right:10px;">
+    <select name="filterWorkSite" class="form-control">
+      <option value="">-- Obra --</option>
+      <option value="costanera" <?= ($_POST['filterWorkSite'] ?? '') === 'costanera' ? 'selected' : '' ?>>Costanera</option>
+      <option value="cooperativa" <?= ($_POST['filterWorkSite'] ?? '') === 'cooperativa' ? 'selected' : '' ?>>Cooperativa</option>
+      <option value="terminal" <?= ($_POST['filterWorkSite'] ?? '') === 'terminal' ? 'selected' : '' ?>>Terminal</option>
+    </select>
     </div>
     <div class="form-group" style="margin-right:10px;">
       <select name="filterStatus" class="form-control">
@@ -161,6 +177,7 @@ $members = $stmt->fetchAll();
             <th>Fecha Ingreso</th>
             <th>Fecha Egreso</th>
             <th>Estado</th>
+            <th>Obra</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -181,6 +198,7 @@ $members = $stmt->fetchAll();
               <td data-label="Estado">
                 <?= $member['status'] === 'activo' ? 'Activo' : ($member['status'] === 'inactivo' ? 'Inactivo' : ucfirst($member['status'])) ?>
               </td>
+              <td data-label="Obra"><?= htmlspecialchars($member['work_site']) ?></td>
               <td data-label="Acciones">
                 <button type="button" class="btn btn-warning btn-sm" onclick='openEditModal(<?= json_encode($member) ?>)' title="Editar">
                   <i class="bi bi-pencil-fill"></i>
