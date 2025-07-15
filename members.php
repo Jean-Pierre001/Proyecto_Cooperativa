@@ -11,6 +11,8 @@ require_once 'includes/conn.php';
 
 $filterName = $_POST['filterName'] ?? '';
 $filterStatus = $_POST['filterStatus'] ?? '';
+$filterFromDate = $_POST['filterFromDate'] ?? '';
+$filterToDate = $_POST['filterToDate'] ?? '';
 
 $sql = "SELECT * FROM members WHERE 1=1 ";
 $params = [];
@@ -23,6 +25,16 @@ if ($filterName !== '') {
 if ($filterStatus !== '') {
     $sql .= " AND status = :status ";
     $params[':status'] = $filterStatus;
+}
+
+if ($filterFromDate !== '') {
+    $sql .= " AND entry_date >= :fromDate ";
+    $params[':fromDate'] = $filterFromDate;
+}
+
+if ($filterToDate !== '') {
+    $sql .= " AND entry_date <= :toDate ";
+    $params[':toDate'] = $filterToDate;
 }
 
 $stmt = $pdo->prepare($sql);
@@ -104,15 +116,23 @@ $members = $stmt->fetchAll();
   <?php endif; ?>
 
   <form method="POST" class="form-inline mb-3">
-    <div class="form-group">
+    <div class="form-group" style="margin-right:10px;">
       <input type="text" name="filterName" class="form-control" placeholder="Filtrar por nombre de miembro" value="<?= htmlspecialchars($filterName) ?>" style="min-width: 300px;" />
     </div>
-    <div class="form-group">
+    <div class="form-group" style="margin-right:10px;">
       <select name="filterStatus" class="form-control">
         <option value="">-- Estado --</option>
         <option value="activo" <?= $filterStatus === 'activo' ? 'selected' : '' ?>>Activo</option>
         <option value="inactivo" <?= $filterStatus === 'inactivo' ? 'selected' : '' ?>>Inactivo</option>
       </select>
+    </div>
+    <div class="form-group" style="margin-right:10px;">
+      <label for="filterFromDate" style="margin-right:5px;">Desde:</label>
+      <input type="date" name="filterFromDate" class="form-control" value="<?= htmlspecialchars($filterFromDate) ?>">
+    </div>
+    <div class="form-group" style="margin-right:10px;">
+      <label for="filterToDate" style="margin-right:5px;">Hasta:</label>
+      <input type="date" name="filterToDate" class="form-control" value="<?= htmlspecialchars($filterToDate) ?>">
     </div>
     <button type="submit" class="btn btn-primary ml-2">Filtrar</button>
   </form>
@@ -133,7 +153,7 @@ $members = $stmt->fetchAll();
             <th><input type="checkbox" id="selectAll"></th>
             <th>Nº</th>
             <th>Nº Socio</th>
-            <th>Nombre Completo</th>
+            <th>Nombre y Apellido</th>
             <th>CUIL</th>
             <th>Teléfono</th>
             <th>Email</th>

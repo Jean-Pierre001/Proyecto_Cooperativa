@@ -43,12 +43,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $member_id = $pdo->lastInsertId();
 
         // Crear carpeta para archivos
-        $folder_name = sanitizeFolderName($name);
+        $base_folder_name = sanitizeFolderName($name);
+        $folder_name = $base_folder_name;
         $target_dir = "../uploads/$work_site/$folder_name/";
+        $counter = 1;
 
-        if (!file_exists($target_dir)) {
-            mkdir($target_dir, 0777, true); 
+        while (file_exists($target_dir)) {
+            $folder_name = $base_folder_name . "($counter)";
+            $target_dir = "../uploads/$work_site/$folder_name/";
+            $counter++;
         }
+
+        mkdir($target_dir, 0777, true);
 
         // Subir archivos
         if (isset($_FILES['documents']) && !empty($_FILES['documents']['name'][0])) {

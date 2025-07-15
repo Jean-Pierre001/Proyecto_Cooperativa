@@ -8,9 +8,28 @@ if (!isset($_SESSION['user'])) {
 
 require_once '../includes/conn.php';
 
+// Función para sanear el nombre de carpeta
 function sanitizeFolderName($name) {
     $name = strtolower(trim($name));
     return preg_replace('/[^a-z0-9]+/i', '_', $name);
+}
+
+// Función para eliminar una carpeta y todo su contenido
+function deleteFolder($folder) {
+    if (!file_exists($folder)) return;
+
+    foreach (scandir($folder) as $item) {
+        if ($item == '.' || $item == '..') continue;
+
+        $path = $folder . DIRECTORY_SEPARATOR . $item;
+        if (is_dir($path)) {
+            deleteFolder($path); // recursivo para subcarpetas
+        } else {
+            unlink($path);
+        }
+    }
+
+    rmdir($folder);
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -33,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $documents = $stmtDocs->fetchAll();
 
             foreach ($documents as $doc) {
-                $file = '../uploads/' . $dc['file_path'];
+                $file = '../uploads/' . $doc['file_path'];
                 if (file_exists($file)) {
                     unlink($file);
                 }
@@ -43,9 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $delDocs = $pdo->prepare("DELETE FROM member_documents WHERE member_id = :id");
             $delDocs->execute([':id' => $id]);
 
-            // Eliminar carpeta si existe
+            // Eliminar carpeta del socio (y subcarpetas si las hubiera)
             if (is_dir($folder_path)) {
-                rmdir($folder_path);
+                deleteFolder($folder_path);
             }
 
             // Eliminar miembro
@@ -63,3 +82,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Location: ../members.php');
     exit();
 }
+?>

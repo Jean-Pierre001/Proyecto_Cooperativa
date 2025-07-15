@@ -341,7 +341,7 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
           </a>
 
           <div class="folder-actions">
-            <form method="GET" action="detailsfolders.php" onsubmit="return confirm('¿Eliminar carpeta <?= addslashes(htmlspecialchars($folder_name)) ?>?');" style="display:inline;">
+            <form method="GET" action="detailsfolders.php" onsubmit="return confirm('¿Eliminar carpeta <?= addslashes(htmlspecialchars($folder_name)) ?>?');">
               <input type="hidden" name="folder" value="<?= htmlspecialchars($folder) ?>">
               <input type="hidden" name="delete" value="<?= htmlspecialchars($folder_name) ?>">
               <input type="hidden" name="type" value="folder">
@@ -369,7 +369,7 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
           </a>
 
           <div class="folder-actions">
-            <form method="GET" action="detailsfolders.php" onsubmit="return confirm('¿Eliminar archivo <?= addslashes(htmlspecialchars($file_name)) ?>?');" style="display:inline;">
+            <form method="GET" action="detailsfolders.php" onsubmit="return confirm('¿Eliminar archivo <?= addslashes(htmlspecialchars($file_name)) ?>?');">
               <input type="hidden" name="folder" value="<?= htmlspecialchars($folder) ?>">
               <input type="hidden" name="delete" value="<?= htmlspecialchars($file_name) ?>">
               <input type="hidden" name="type" value="file">
