@@ -67,6 +67,10 @@ if (!isset($_SESSION['user']) || $_SESSION['user_data']['type'] != 1) {
 
   </div>
 
+  <center><h1>!!ADVERTENCIA!!</h1></center>
+  <center><h2>Paciencia a la hora de realizar un respaldo es un proceso grande</h2></center>
+  <center><p>(Limitaciones Del Servidor)</p></center>
+
 
 
   </div>

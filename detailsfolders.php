@@ -1,10 +1,65 @@
 <?php
-// Inicio: Lógica de descarga ANTES de cualquier salida o include
+// --- INICIO ---
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete']) && isset($_POST['folder']) && isset($_POST['type'])) {
+    $folder = trim($_POST['folder'], '/\\');
+    $item_to_delete = basename($_POST['delete']);
+    $type = $_POST['type'];
+
+    // Calcular base_dir y target_path igual que antes...
+    if (strpos($folder, 'uploads/') === 0) {
+        $base_dir = realpath(__DIR__ . '/uploads');
+        $folder_subpath = substr($folder, strlen('uploads/'));
+        $target_path = realpath($base_dir . DIRECTORY_SEPARATOR . $folder_subpath);
+    } elseif (strpos($folder, 'trash/') === 0) {
+        $base_dir = realpath(__DIR__ . '/trash');
+        $folder_subpath = substr($folder, strlen('trash/'));
+        $target_path = realpath($base_dir . DIRECTORY_SEPARATOR . $folder_subpath);
+    } else {
+        $base_dir = realpath(__DIR__ . '/folders');
+        $folder_subpath = $folder;
+        $target_path = realpath($base_dir . DIRECTORY_SEPARATOR . $folder_subpath);
+    }
+
+    $base_dir = rtrim($base_dir, DIRECTORY_SEPARATOR);
+    $target_path = rtrim($target_path, DIRECTORY_SEPARATOR);
+
+    if (strncmp($target_path, $base_dir, strlen($base_dir)) !== 0) {
+        $msg_error = "Acceso no permitido para eliminar.";
+    } else {
+        if ($type === 'file') {
+            $file_path = $target_path . DIRECTORY_SEPARATOR . $item_to_delete;
+            if (is_file($file_path)) {
+                if (unlink($file_path)) {
+                    header("Location: detailsfolders.php?folder=" . urlencode($folder) . "&msg=Archivo+eliminado+correctamente");
+                    exit;
+                } else {
+                    $msg_error = "Error al eliminar el archivo <strong>$item_to_delete</strong>.";
+                }
+            } else {
+                $msg_error = "Archivo no encontrado.";
+            }
+        } elseif ($type === 'folder') {
+            $folder_path = $target_path . DIRECTORY_SEPARATOR . $item_to_delete;
+            if (is_dir($folder_path)) {
+                // Intentar eliminar solo si está vacía:
+                if (@rmdir($folder_path)) {
+                    header("Location: detailsfolders.php?folder=" . urlencode($folder) . "&msg=Carpeta+eliminada+correctamente");
+                    exit;
+                } else {
+                    $msg_error = "No se pudo eliminar la carpeta (¿está vacía?).";
+                }
+            } else {
+                $msg_error = "Carpeta no encontrada.";
+            }
+        }
+    }
+}
+
 
 $folder = isset($_GET['folder']) ? $_GET['folder'] : '';
 $folder = trim($folder, '/\\');
 
-// Determinar base_dir y target_path según prefijo
 if (strpos($folder, 'uploads/') === 0) {
     $base_dir = realpath(__DIR__ . '/uploads');
     $folder_subpath = substr($folder, strlen('uploads/'));
@@ -14,112 +69,66 @@ if (strpos($folder, 'uploads/') === 0) {
     $folder_subpath = substr($folder, strlen('trash/'));
     $target_path = realpath($base_dir . DIRECTORY_SEPARATOR . $folder_subpath);
 } else {
-    // Carpeta normal en 'folders'
     $base_dir = realpath(__DIR__ . '/folders');
     $folder_subpath = $folder;
     $target_path = realpath($base_dir . DIRECTORY_SEPARATOR . $folder_subpath);
 }
 
-// Verificar rutas válidas
-if (!$base_dir || !$target_path) {
-    die("Acceso no permitido: ruta base o carpeta no encontrada.");
-}
+if (!$base_dir || !$target_path) die("Acceso no permitido: ruta base o carpeta no encontrada.");
 
-// Normalizar sin barra final
 $base_dir = rtrim($base_dir, DIRECTORY_SEPARATOR);
 $target_path = rtrim($target_path, DIRECTORY_SEPARATOR);
 
-// Comprobar que $target_path está dentro de $base_dir para seguridad
-if (strncmp($target_path, $base_dir, strlen($base_dir)) !== 0) {
-    die("Acceso no permitido: ruta fuera de base.");
-}
-
-// Descarga de archivo
-if (isset($_GET['download'])) {
-    $file_to_download = basename($_GET['download']);
-    $file_path = $target_path . DIRECTORY_SEPARATOR . $file_to_download;
-
-    if (file_exists($file_path) && is_file($file_path)) {
-        // Forzar descarga
-        header('Content-Description: File Transfer');
-        header('Content-Type: application/octet-stream');
-        header('Content-Disposition: attachment; filename="' . basename($file_path) . '"');
-        header('Expires: 0');
-        header('Cache-Control: must-revalidate');
-        header('Pragma: public');
-        header('Content-Length: ' . filesize($file_path));
-        flush();
-        readfile($file_path);
-        exit;
-    } else {
-        die('Archivo no encontrado.');
-    }
-}
+if (strncmp($target_path, $base_dir, strlen($base_dir)) !== 0) die("Acceso no permitido: ruta fuera de base.");
 
 include 'includes/session.php';
 include 'includes/header.php';
 include 'includes/navbar.php';
-
-// --- ELIMINAR ARCHIVOS Y CARPETAS ---
-$msg = '';
-$msg_error = '';
-
-// Incluir conexión PDO (si no está ya incluido arriba)
 require_once 'includes/conn.php';
+include 'modal_archivo.php';
 
-if (isset($_GET['delete']) && isset($_GET['type'])) {
-    $delete_name = basename($_GET['delete']);
-    $type = $_GET['type'];
-    $delete_path = $target_path . DIRECTORY_SEPARATOR . $delete_name;
+function renombrar_carpeta($target_path, $nombre_viejo, $nombre_nuevo) {
+    $nombre_viejo = basename($nombre_viejo);
+    $nombre_nuevo = basename($nombre_nuevo);
 
-    if (!file_exists($delete_path)) {
-        $msg_error = "El archivo o carpeta no existe.";
+    $ruta_vieja = $target_path . DIRECTORY_SEPARATOR . $nombre_viejo;
+    $ruta_nueva = $target_path . DIRECTORY_SEPARATOR . $nombre_nuevo;
+
+    if (!is_dir($ruta_vieja)) {
+        return "La carpeta original no existe.";
+    }
+    if (file_exists($ruta_nueva)) {
+        return "Ya existe una carpeta con el nombre nuevo.";
+    }
+
+    if (rename($ruta_vieja, $ruta_nueva)) {
+        return true;  // Éxito
     } else {
-        if ($type === 'file' && is_file($delete_path)) {
-            if (unlink($delete_path)) {
-                // Si la carpeta es uploads/, eliminar registro en member_documents
-                if (strpos($folder, 'uploads/') === 0) {
-                    $relativePath = $folder_subpath . '/' . $delete_name;
-                    $stmt = $pdo->prepare("DELETE FROM member_documents WHERE file_path = ?");
-                    $stmt->execute([$relativePath]);
-                }
-                $msg = "Archivo <strong>$delete_name</strong> eliminado correctamente.";
-            } else {
-                $msg_error = "Error al eliminar archivo.";
-            }
-        } elseif ($type === 'folder' && is_dir($delete_path)) {
-            $files_in_folder = array_diff(scandir($delete_path), array('.', '..'));
-            if (count($files_in_folder) > 0) {
-                $msg_error = "La carpeta no está vacía, no se puede eliminar.";
-            } else {
-                if (rmdir($delete_path)) {
-                    $msg = "Carpeta <strong>$delete_name</strong> eliminada correctamente.";
-                } else {
-                    $msg_error = "Error al eliminar carpeta.";
-                }
-            }
-        } else {
-            $msg_error = "Tipo o archivo/carpeta inválido.";
-        }
+        return "Error al renombrar la carpeta.";
     }
 }
 
-// --- CREAR NUEVA CARPETA ---
+$msg = '';
+$msg_error = '';
+
+if (isset($_POST['rename_folder']) && !empty($_POST['old_name']) && !empty($_POST['new_name'])) {
+    $resultado = renombrar_carpeta($target_path, $_POST['old_name'], $_POST['new_name']);
+    if ($resultado === true) {
+        $msg = "Carpeta renombrada correctamente.";
+    } else {
+        $msg_error = $resultado;
+    }
+}
+
 if (isset($_POST['new_folder']) && !empty($_POST['folder_name'])) {
     $new_folder = basename($_POST['folder_name']);
     $new_folder_path = $target_path . DIRECTORY_SEPARATOR . $new_folder;
     if (!file_exists($new_folder_path)) {
-        if (mkdir($new_folder_path, 0755, true)) {
-            $msg = "Carpeta <strong>$new_folder</strong> creada exitosamente.";
-        } else {
-            $msg_error = "Error al crear la carpeta.";
-        }
-    } else {
-        $msg_error = "La carpeta <strong>$new_folder</strong> ya existe.";
-    }
+        if (mkdir($new_folder_path, 0755, true)) $msg = "Carpeta <strong>$new_folder</strong> creada exitosamente.";
+        else $msg_error = "Error al crear la carpeta.";
+    } else $msg_error = "La carpeta <strong>$new_folder</strong> ya existe.";
 }
 
-// --- SUBIR ARCHIVO ---
 if (isset($_POST['upload']) && isset($_FILES['file'])) {
     $totalFiles = count($_FILES['file']['name']);
     $uploadErrors = [];
@@ -129,24 +138,17 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
         $file_name = basename($_FILES['file']['name'][$i]);
         $file_tmp = $_FILES['file']['tmp_name'][$i];
         $file_dest = $target_path . DIRECTORY_SEPARATOR . $file_name;
-
-        if (move_uploaded_file($file_tmp, $file_dest)) {
-            $uploadSuccesses[] = $file_name;
-        } else {
-            $uploadErrors[] = $file_name;
-        }
+        if (move_uploaded_file($file_tmp, $file_dest)) $uploadSuccesses[] = $file_name;
+        else $uploadErrors[] = $file_name;
     }
 
-    if (count($uploadSuccesses) > 0) {
+    if (count($uploadSuccesses) > 0)
         $msg = "Archivos subidos correctamente: <strong>" . implode(", ", $uploadSuccesses) . "</strong>.";
-    }
-
-    if (count($uploadErrors) > 0) {
+    if (count($uploadErrors) > 0)
         $msg_error = "Error al subir los siguientes archivos: <strong>" . implode(", ", $uploadErrors) . "</strong>.";
-    }
 }
-?>
 
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -154,19 +156,9 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
   <title>Contenido de Carpeta: <?php echo htmlspecialchars($folder ?: 'Raíz'); ?></title>
   <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
   <style>
-    body {
-      padding-top: 50px;
-      background-color: #e8f0fe;
-    }
-    .content-wrapper {
-      margin-left: 230px;
-      padding: 30px;
-    }
-    .folder-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 25px;
-    }
+    body { padding-top: 50px; background-color: #e8f0fe; }
+    .content-wrapper { margin-left: 230px; padding: 30px; }
+    .folder-grid { display: flex; flex-wrap: wrap; gap: 25px; }
     .folder-card {
       background: #ffffff; 
       width: 180px; 
@@ -185,7 +177,7 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
       flex-direction: column;
       align-items: center;
       justify-content: start;
-      padding-bottom: 60px; /* espacio para botones */
+      padding-bottom: 60px; /* más espacio para botones */
     }
 
     .folder-card:hover {
@@ -194,11 +186,7 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
       background: linear-gradient(to bottom, #fff7e6, #ffe0b2);
     }
 
-    .folder-icon { 
-      font-size: 55px; 
-      color: #f1c40f; 
-      margin-bottom: 10px; 
-    }
+    .folder-icon { font-size: 55px; color: #f1c40f; margin-bottom: 10px; }
     .folder-name { 
       font-size: 16px; 
       font-weight: 600; 
@@ -220,58 +208,46 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
       justify-content: center;
       gap: 15px;
       box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-      pointer-events: auto; /* para clicks */
+      pointer-events: auto; /* para que pueda recibir clicks */
       cursor: default;
       user-select: none;
     }
 
     .folder-actions form,
-    .folder-actions a {
+    .folder-actions button {
       margin: 0;
       padding: 0;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+    }
+
+    .folder-actions button,
+    .folder-actions .btn {
       color: #f0ad4e;
       font-size: 18px;
+      padding: 0;
       background: none;
       border: none;
       cursor: pointer;
       outline: none;
-      text-decoration: none;
       transition: color 0.2s ease;
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-    }
-
-    .folder-actions form button,
-    .folder-actions a.delete-btn {
-      color: #d9534f;
-    }
-
-    .folder-actions form button:hover,
-    .folder-actions a.delete-btn:hover {
-      color: #d47a0a;
     }
 
     .folder-actions form button {
-      border: none;
-      background: none;
-      padding: 0;
-      font-size: 18px;
-      cursor: pointer;
+      color: #d9534f;
     }
+
+    .folder-actions button:hover,
+    .folder-actions form button:hover {
+      color: #d47a0a;
+    }
+
+    .folder-location { font-size: 13px; color: #7f8c8d; margin-top: 5px; word-break: break-word; }
 
   </style>
 </head>
 <body>
-
 <?php include 'includes/sidebar.php'; ?>
-
 <div class="content-wrapper">
   <h2>Contenido de Carpeta: <?php echo htmlspecialchars($folder ?: 'Raíz'); ?></h2>
-
   <ol class="breadcrumb">
     <li><a href="folders.php">Raíz</a></li>
     <?php
@@ -289,29 +265,20 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
     }
     ?>
   </ol>
-
-  <?php if ($msg): ?>
-    <div class="alert alert-success"><?php echo $msg; ?></div>
-  <?php endif; ?>
-
-  <?php if ($msg_error): ?>
-    <div class="alert alert-danger"><?php echo $msg_error; ?></div>
-  <?php endif; ?>
-
+  <?php if ($msg): ?><div class="alert alert-success"><?php echo $msg; ?></div><?php endif; ?>
+  <?php if ($msg_error): ?><div class="alert alert-danger"><?php echo $msg_error; ?></div><?php endif; ?>
   <form method="post" class="form-inline" style="margin-bottom: 20px;">
     <div class="form-group">
       <input type="text" name="folder_name" class="form-control" placeholder="Nombre de carpeta" required>
     </div>
     <button type="submit" name="new_folder" class="btn btn-success">Crear Carpeta</button>
   </form>
-
   <form method="post" enctype="multipart/form-data" class="form-inline" style="margin-bottom: 30px;">
     <div class="form-group">
       <input type="file" name="file[]" class="form-control" multiple required>
     </div>
     <button type="submit" name="upload" class="btn btn-primary">Subir Archivo(s)</button>
   </form>
-
   <?php
   $items = scandir($target_path);
   $folders = [];
@@ -319,89 +286,99 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
   foreach ($items as $item) {
     if ($item === '.' || $item === '..') continue;
     $full_path = $target_path . DIRECTORY_SEPARATOR . $item;
-    if (is_dir($full_path)) {
-      $folders[] = $item;
-    } else {
-      $files[] = $item;
-    }
+    if (is_dir($full_path)) $folders[] = $item;
+    else $files[] = $item;
   }
   ?>
+ <?php if (count($folders) > 0): ?>
+  <h3>Carpetas</h3>
+  <div class="folder-grid">
+    <?php foreach ($folders as $folder_name): 
+    $modal_id = 'renameModal_' . md5($folder_name);
+    $folder_url = ($folder ? $folder . '/' : '') . $folder_name;
+?>
+  <div class="folder-card" style="position: relative;">
+    <a href="detailsfolders.php?folder=<?= urlencode($folder_url) ?>" style="color: inherit; text-decoration: none; flex-grow: 1;">
+      <div class="folder-icon"><span class="glyphicon glyphicon-folder-open"></span></div>
+      <div class="folder-name"><?= htmlspecialchars($folder_name) ?></div>
+    </a>
+    <div class="folder-actions">
+      <!-- Formulario para eliminar carpeta -->
+      <form method="post" action="detailsfolders.php" onsubmit="return confirm('¿Seguro que deseas eliminar la carpeta <?= addslashes(htmlspecialchars($folder_name)) ?>?');" style="display:inline;">
+        <input type="hidden" name="folder" value="<?= htmlspecialchars($folder) ?>">
+        <input type="hidden" name="delete_folder" value="<?= htmlspecialchars($folder_url) ?>">
+        <button type="submit" class="btn btn-danger btn-xs" title="Eliminar carpeta">
+          <span class="glyphicon glyphicon-trash"></span>
+        </button>
+      </form>
 
-  <?php if (count($folders) > 0): ?>
-    <h3>Carpetas</h3>
-    <div class="folder-grid">
-      <?php foreach ($folders as $folder_name): ?>
-        <?php 
-          $link = 'detailsfolders.php?folder=' . urlencode(($folder ? $folder . '/' : '') . $folder_name);
-        ?>
-        <div style="position: relative; display: inline-block; margin: 10px;">
-          <a href="<?= $link ?>" class="folder-card">
-            <div class="folder-icon"><span class="glyphicon glyphicon-folder-open"></span></div>
-            <div class="folder-name"><?= htmlspecialchars($folder_name) ?></div>
-          </a>
-
-          <div class="folder-actions">
-            <form method="GET" action="detailsfolders.php" onsubmit="return confirm('¿Eliminar carpeta <?= addslashes(htmlspecialchars($folder_name)) ?>?');">
-              <input type="hidden" name="folder" value="<?= htmlspecialchars($folder) ?>">
-              <input type="hidden" name="delete" value="<?= htmlspecialchars($folder_name) ?>">
-              <input type="hidden" name="type" value="folder">
-              <button type="submit" title="Eliminar carpeta">
-                <span class="glyphicon glyphicon-trash"></span>
-              </button>
-            </form>
-          </div>
-        </div>
-      <?php endforeach; ?>
+      <!-- Botón para renombrar carpeta -->
+      <button type="button" class="btn btn-warning btn-xs" title="Renombrar carpeta" data-toggle="modal" data-target="#<?= $modal_id ?>">
+        <span class="glyphicon glyphicon-pencil"></span>
+      </button>
     </div>
-  <?php endif; ?>
+  </div>
+
+  <!-- Modal renombrar -->
+  <div class="modal fade" id="<?= $modal_id ?>" tabindex="-1" role="dialog" aria-labelledby="<?= $modal_id ?>Label">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <form method="post" action="detailsfolders.php?folder=<?= urlencode($folder) ?>">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="<?= $modal_id ?>Label">Renombrar carpeta: <?= htmlspecialchars($folder_name) ?></h4>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" name="old_name" value="<?= htmlspecialchars($folder_url) ?>">
+            <div class="form-group">
+              <label for="new_name_<?= $modal_id ?>">Nuevo nombre</label>
+              <input type="text" class="form-control" id="new_name_<?= $modal_id ?>" name="new_name" required>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" name="rename_folder" class="btn btn-primary">Renombrar</button>
+            <button type="button" class="btn btn-default" data-dismiss="modal">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+<?php endforeach; ?>
+
+
+  </div>
+<?php endif; ?>
 
   <?php if (count($files) > 0): ?>
-    <h3>Archivos</h3>
-    <div class="folder-grid">
-      <?php foreach ($files as $file_name): ?>
-        <?php 
-          $link = 'detailsfolders.php?folder=' . urlencode($folder) . '&download=' . urlencode($file_name);
-        ?>
-        <div style="position: relative; display: inline-block; margin: 10px;">
-          <a href="<?= $link ?>" class="folder-card">
-            <div class="folder-icon"><span class="glyphicon glyphicon-file"></span></div>
-            <div class="folder-name"><?= htmlspecialchars($file_name) ?></div>
-          </a>
+  <h3>Archivos</h3>
+  <div class="folder-grid">
+    <?php foreach ($files as $file_name): ?>
+      <?php 
+        if (strpos($folder, 'uploads/') === 0) {
+          $relative_file_path = $folder . '/' . $file_name;
+        } elseif (strpos($folder, 'trash/') === 0) {
+          $relative_file_path = $folder . '/' . $file_name;
+        } elseif ($folder != '') {
+          $relative_file_path = 'folders/' . $folder . '/' . $file_name;
+        } else {
+          $relative_file_path = 'folders/' . $file_name;
+        }
 
-          <div class="folder-actions">
-            <form method="GET" action="detailsfolders.php" onsubmit="return confirm('¿Eliminar archivo <?= addslashes(htmlspecialchars($file_name)) ?>?');">
-              <input type="hidden" name="folder" value="<?= htmlspecialchars($folder) ?>">
-              <input type="hidden" name="delete" value="<?= htmlspecialchars($file_name) ?>">
-              <input type="hidden" name="type" value="file">
-              <button type="submit" title="Eliminar archivo">
-                <span class="glyphicon glyphicon-trash"></span>
-              </button>
-            </form>
-          </div>
-        </div>
-      <?php endforeach; ?>
-    </div>
-  <?php endif; ?>
-
+        $modal_id = 'modal_' . md5($file_name);
+      ?>
+      <div class="folder-card" data-toggle="modal" data-target="#<?= $modal_id ?>">
+        <div class="folder-icon"><span class="glyphicon glyphicon-file"></span></div>
+        <div class="folder-name"><?= htmlspecialchars($file_name) ?></div>
+      </div>
+      <?php mostrar_modal_archivo($relative_file_path, $file_name, $modal_id, $folder); ?>
+    <?php endforeach; ?>
+  </div>
+<?php endif; ?>
 </div>
-
 <?php include 'includes/footer.php'; ?>
-
-<script>
-  // Evitar hover de carpeta cuando mouse está sobre botones de acciones
-  document.querySelectorAll('.folder-actions').forEach(actions => {
-    const card = actions.previousElementSibling; // el <a> con .folder-card
-
-    actions.addEventListener('mouseenter', () => {
-      if(card) card.style.pointerEvents = 'none';
-      actions.style.pointerEvents = 'auto';
-    });
-
-    actions.addEventListener('mouseleave', () => {
-      if(card) card.style.pointerEvents = 'auto';
-    });
-  });
-</script>
-
 </body>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
 </html>

@@ -68,46 +68,16 @@ foreach ($data as $member) {
         'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $fillColor]],
     ]);
     $row++;
-}
+}   
 
 // Autoajuste de columnas
 foreach (range('A', 'I') as $col) {
     $sheet->getColumnDimension($col)->setAutoSize(true);
 }
 
-// Segunda hoja: índice de archivos PDF
-$infoSheet = $spreadsheet->createSheet();
-$infoSheet->setTitle('Info');
-
-$infoSheet->setCellValue('A1', 'Archivos PDF Escaneados');
-$infoSheet->getStyle('A1')->applyFromArray([
-    'font' => ['bold' => true, 'size' => 14],
-    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-]);
-$infoSheet->mergeCells('A1:C1');
-
-$infoSheet->fromArray(['ID Socio', 'Archivo Tipo', 'Nombre del Archivo'], null, 'A2');
-$infoSheet->getStyle('A2:C2')->applyFromArray([
-    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '606060']],
-    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
-]);
-
-// Ejemplo de cómo se vería para rellenar manualmente
-$infoSheet->fromArray([
-    [101, 'Acta Ingreso', 'acta_ingreso_101.pdf'],
-    [101, 'Solicitud Ingreso', 'solicitud_101.pdf'],
-    [102, 'Renuncia', 'renuncia_102.pdf'],
-    [102, 'Acta Egreso', 'acta_egreso_102.pdf']
-], null, 'A3');
-
-$infoSheet->getColumnDimension('A')->setWidth(15);
-$infoSheet->getColumnDimension('B')->setWidth(25);
-$infoSheet->getColumnDimension('C')->setWidth(40);
-
 // Descargar archivo
 header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-header('Content-Disposition: attachment; filename="socios_seleccionados.xlsx"');
+header('Content-Disposition: attachment; filename="Padron_De_Socios.xlsx"');
 
 $writer = new Xlsx($spreadsheet);
 $writer->save('php://output');
