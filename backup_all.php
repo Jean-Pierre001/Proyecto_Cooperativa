@@ -1,5 +1,6 @@
 <?php
 include 'includes/session.php';
+
 if (!isset($_SESSION['user'])) {
     header('location: login.php');
     exit();
@@ -8,7 +9,7 @@ if (!isset($_SESSION['user'])) {
 require_once 'includes/dropbox_helper.php';
 
 try {
-    // 1. Respaldar carpetas personalizadas (carpeta /folders/)
+    // 1. Respaldar carpetas en /folders/
     $foldersBase = __DIR__ . '/folders';
     if (is_dir($foldersBase)) {
         $subfolders = array_filter(scandir($foldersBase), function($item) use ($foldersBase) {
@@ -22,7 +23,7 @@ try {
         }
     }
 
-    // 2. Respaldar carpetas dentro de /uploads/
+    // 2. Respaldar carpetas en /uploads/
     $uploadsBase = __DIR__ . '/uploads';
     if (is_dir($uploadsBase)) {
         $subfolders = array_filter(scandir($uploadsBase), function($item) use ($uploadsBase) {

@@ -6,12 +6,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete']) && isset($_
     $item_to_delete = basename($_POST['delete']);
     $type = $_POST['type'];
 
-    // Calcular base_dir y target_path igual que antes...
-    if (strpos($folder, 'uploads/') === 0) {
-        $base_dir = realpath(__DIR__ . '/uploads');
-        $folder_subpath = substr($folder, strlen('uploads/'));
-        $target_path = realpath($base_dir . DIRECTORY_SEPARATOR . $folder_subpath);
-    } elseif (strpos($folder, 'trash/') === 0) {
+    // Calcular base_dir y target_path, ya SIN uploads
+    if (strpos($folder, 'trash/') === 0) {
         $base_dir = realpath(__DIR__ . '/trash');
         $folder_subpath = substr($folder, strlen('trash/'));
         $target_path = realpath($base_dir . DIRECTORY_SEPARATOR . $folder_subpath);
@@ -60,11 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete']) && isset($_
 $folder = isset($_GET['folder']) ? $_GET['folder'] : '';
 $folder = trim($folder, '/\\');
 
-if (strpos($folder, 'uploads/') === 0) {
-    $base_dir = realpath(__DIR__ . '/uploads');
-    $folder_subpath = substr($folder, strlen('uploads/'));
-    $target_path = realpath($base_dir . DIRECTORY_SEPARATOR . $folder_subpath);
-} elseif (strpos($folder, 'trash/') === 0) {
+if (strpos($folder, 'trash/') === 0) {
     $base_dir = realpath(__DIR__ . '/trash');
     $folder_subpath = substr($folder, strlen('trash/'));
     $target_path = realpath($base_dir . DIRECTORY_SEPARATOR . $folder_subpath);
@@ -306,7 +298,8 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
       <!-- Formulario para eliminar carpeta -->
       <form method="post" action="detailsfolders.php" onsubmit="return confirm('¿Seguro que deseas eliminar la carpeta <?= addslashes(htmlspecialchars($folder_name)) ?>?');" style="display:inline;">
         <input type="hidden" name="folder" value="<?= htmlspecialchars($folder) ?>">
-        <input type="hidden" name="delete_folder" value="<?= htmlspecialchars($folder_url) ?>">
+        <input type="hidden" name="delete" value="<?= htmlspecialchars($folder_name) ?>">
+        <input type="hidden" name="type" value="folder">
         <button type="submit" class="btn btn-danger btn-xs" title="Eliminar carpeta">
           <span class="glyphicon glyphicon-trash"></span>
         </button>
@@ -354,9 +347,7 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
   <div class="folder-grid">
     <?php foreach ($files as $file_name): ?>
       <?php 
-        if (strpos($folder, 'uploads/') === 0) {
-          $relative_file_path = $folder . '/' . $file_name;
-        } elseif (strpos($folder, 'trash/') === 0) {
+        if (strpos($folder, 'trash/') === 0) {
           $relative_file_path = $folder . '/' . $file_name;
         } elseif ($folder != '') {
           $relative_file_path = 'folders/' . $folder . '/' . $file_name;

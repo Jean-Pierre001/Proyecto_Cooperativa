@@ -50,6 +50,7 @@
           <div class="form-group">
             <label>Obra asignada</label>
             <select name="work_site" class="form-control" required>
+              <option value="sin-asignar">Sin Asignar</option>        
               <option value="costanera">Costanera</option>
               <option value="cooperativa">Cooperativa</option>
               <option value="terminal">Terminal</option>
@@ -120,6 +121,7 @@
           <div class="form-group">
             <label>Obra asignada</label>
             <select name="work_site" id="edit_work_site" class="form-control" required>
+              <option value="sin-asignar">Sin Asignar</option>        
               <option value="costanera">Costanera</option>
               <option value="cooperativa">Cooperativa</option>
               <option value="terminal">Terminal</option>
@@ -194,22 +196,3 @@
   }
 </style>
 
-<script>
-  const cuilInput = document.getElementById('cuil');
-
-  cuilInput.addEventListener('input', function(e) {
-    let value = this.value.replace(/\D/g, ''); // solo dígitos
-    if (value.length > 11) value = value.slice(0, 11);
-
-    if (value.length <= 2) {
-      // hasta 2 dígitos, sin guiones
-      this.value = value;
-    } else if (value.length <= 10) {
-      // entre 3 y 10 dígitos: XX-XXXXXXXX
-      this.value = value.slice(0, 2) + '-' + value.slice(2);
-    } else {
-      // 11 dígitos: XX-XXXXXXXX-X
-      this.value = value.slice(0, 2) + '-' + value.slice(2, 10) + '-' + value.slice(10);
-    }
-  });
-</script>

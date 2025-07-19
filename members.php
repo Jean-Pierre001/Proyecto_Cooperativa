@@ -231,6 +231,7 @@ $members = $stmt->fetchAll();
 </div>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 
 <script>
   // Seleccionar/deseleccionar todos
@@ -295,21 +296,22 @@ $members = $stmt->fetchAll();
     fetch('members_back/getDocuments.php?member_id=' + member.id)
       .then(response => response.json())
       .then(data => {
-        if (!Array.isArray(data) || data.length === 0) {
-          docsDiv.innerHTML = '<p class="text-muted">Este socio no tiene documentos cargados.</p>';
-          return;
-        }
-        let html = '<ul style="list-style:none; padding-left:0;">';
-        data.forEach(doc => {
-          html += `
-            <li style="margin-bottom: 8px;">
-              <a href="uploads/${doc.file_path}" target="_blank">${doc.file_path}</a>
-              <label style="margin-left: 10px;">
-                <input type="checkbox" name="delete_docs[]" value="${doc.id}"> Eliminar
-              </label>
-            </li>
-          `;
-        });
+        data.forEach((doc, index) => {
+        // Crear un ID único para el modal preview basado en memberId e índice del documento
+        const idModal = `modalPreview_${memberId}_${index}`;
+
+        html += `<tr>
+          <td>${doc.document_type ? doc.document_type + ': ' : ''}${doc.file_path}</td>
+          <td>
+            <button class="btn btn-sm btn-info" onclick="abrirModalPreview('${doc.file_path}', '${idModal}', ${memberId})">
+              <i class="bi bi-eye"></i> Vista previa
+            </button>
+            <a href="uploads/${doc.file_path}" download class="btn btn-sm btn-primary">
+              <i class="bi bi-download"></i> Descargar
+            </a>
+          </td>
+        </tr>`;
+       });
         html += '</ul>';
         docsDiv.innerHTML = html;
       })
@@ -322,40 +324,103 @@ $members = $stmt->fetchAll();
 
   // Función para ver documentos del socio
   function verDocumentos(memberId, memberName) {
-    $('#nombreSocioDoc').text(memberName);
-    $('#contenedorDocumentos').html('<p class="text-muted">Cargando documentos...</p>');
-    $('#modalVerDocumentos').modal('show');
+  $('#nombreSocioDoc').text(memberName);
+  $('#contenedorDocumentos').html('<p class="text-muted">Cargando documentos...</p>');
+  $('#modalVerDocumentos').modal('show');
 
-    fetch('members_back/getDocuments.php?member_id=' + memberId)
-      .then(response => response.json())
-      .then(data => {
-        if (!Array.isArray(data) || data.length === 0) {
-          $('#contenedorDocumentos').html('<p class="text-muted">Este socio no tiene documentos cargados.</p>');
-          return;
-        }
-        let html = '<table class="table table-striped">';
-        html += '<thead><tr><th>Nombre del archivo</th><th>Acción</th></tr></thead><tbody>';
-        data.forEach(doc => {
-          html += `<tr>
-            <td>${doc.document_type ? doc.document_type + ': ' : ''}${doc.file_path}</td>
-            <td>
-              <a href="uploads/${doc.file_path}" download class="btn btn-sm btn-primary">
-                <i class="bi bi-download"></i> Descargar
-              </a>
-            </td>
-          </tr>`;
-        });
-        html += '</tbody></table>';
-        $('#contenedorDocumentos').html(html);
-      })
-      .catch(() => {
-        $('#contenedorDocumentos').html('<p class="text-danger">Error al cargar documentos.</p>');
+  fetch('members_back/getDocuments.php?member_id=' + memberId)
+    .then(response => response.json())
+    .then(data => {
+      if (!Array.isArray(data) || data.length === 0) {
+        $('#contenedorDocumentos').html('<p class="text-muted">Este socio no tiene documentos cargados.</p>');
+        return;
+      }
+      let html = '<table class="table table-striped">';
+      html += '<thead><tr><th>Nombre del archivo</th><th>Acción</th></tr></thead><tbody>';
+
+      data.forEach((doc, index) => {
+        const idModal = `modalPreview_${memberId}_${index}`;
+        html += `<tr>
+          <td>${doc.document_type ? doc.document_type + ': ' : ''}${doc.file_path}</td>
+          <td>
+            <button class="btn btn-sm btn-info" onclick="abrirModalPreview('${doc.file_path}', '${idModal}', ${memberId})">
+              <i class="bi bi-eye"></i> Vista previa
+            </button>
+          </td>
+        </tr>`;
       });
+
+      html += '</tbody></table>';
+      $('#contenedorDocumentos').html(html);
+    })
+    .catch(() => {
+      $('#contenedorDocumentos').html('<p class="text-danger">Error al cargar documentos.</p>');
+    });
+}
+
+function abrirModalPreview(nombreArchivo, idModal, memberId) {
+  // Evita crear el modal si ya existe
+  if (document.getElementById(idModal)) {
+    $('#' + idModal).modal('show');
+    return;
   }
+
+  const extension = nombreArchivo.split('.').pop().toLowerCase();
+  let contenido = '';
+
+  const rutaArchivo = 'uploads/' + nombreArchivo; // Ajusta si tu carpeta es otra
+
+  if (['jpg','jpeg','png','gif','webp'].includes(extension)) {
+    contenido = `<img src="${rutaArchivo}" style="max-width:100%; max-height:80vh;" class="img-thumbnail" alt="Imagen">`;
+  } else if (extension === 'pdf') {
+    contenido = `<iframe src="${rutaArchivo}" style="width:100%; height:80vh;" frameborder="0"></iframe>`;
+  } else if (['txt','log','csv'].includes(extension)) {
+    contenido = `<iframe src="${rutaArchivo}" style="width:100%; height:80vh;" frameborder="0"></iframe>`;
+  } else if (['mp4','webm','ogg'].includes(extension)) {
+    contenido = `<video controls style="max-width:100%; max-height:80vh;">
+      <source src="${rutaArchivo}" type="video/${extension}">
+      Tu navegador no soporta el video.
+    </video>`;
+  } else if (['mp3','wav','ogg'].includes(extension)) {
+    contenido = `<audio controls style="width:100%;">
+      <source src="${rutaArchivo}" type="audio/${extension}">
+      Tu navegador no soporta audio.
+    </audio>`;
+  } else {
+    contenido = '<p class="text-muted">No se puede previsualizar este tipo de archivo.</p>';
+  }
+
+  const modalHtml = `
+  <div class="modal fade" id="${idModal}" tabindex="-1" role="dialog" aria-labelledby="${idModal}Label" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document" style="max-width: 90vw;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title" id="${idModal}Label">Vista previa de ${nombreArchivo}</h4>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar"><span aria-hidden="true">&times;</span></button>
+        </div>
+        <div class="modal-body text-center" style="min-height: 500px;">
+          ${contenido}
+        </div>
+        <div class="modal-footer">
+          <a href="${rutaArchivo}" download class="btn btn-primary">Descargar</a>
+          <button type="button" class="btn btn-default" data-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+
+  // Agrega el modal al contenedor y lo muestra
+  $('#contenedorModalesPreview').append(modalHtml);
+  $('#' + idModal).modal('show');
+}
+
+
 </script>
+
 
 <?php include 'includes/footer.php'; ?>
 <?php include 'includes/scripts.php'; ?>
+<div id="contenedorModalesPreview"></div>
 
 </body>
 </html>

@@ -249,43 +249,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_folder'])) {
     ?>
 </div>
 
-<!-- Sección uploads -->
-<h3 style="margin-top: 50px;">Carpetas de Obras (Contiene los archivos de socios)</h3>
-
-<div class="folder-grid">
-  <?php
-    $uploadsDir = realpath(__DIR__ . '/uploads') . '/';
-
-    if ($uploadsDir && is_dir($uploadsDir)) {
-      $uploadFolders = array_filter(scandir($uploadsDir), function($item) use ($uploadsDir) {
-        return $item !== '.' && $item !== '..' && is_dir($uploadsDir . $item);
-      });
-
-      if (count($uploadFolders) === 0) {
-        echo "<p>No hay carpetas de socios.</p>";
-      } else {
-        foreach ($uploadFolders as $folderName) {
-          $displayName = ucwords(str_replace('_', ' ', $folderName));
-          $encodedName = urlencode('uploads/' . $folderName);
-
-          echo '
-            <div style="position: relative; display: inline-block; margin: 10px;">
-              <a href="detailsfolders.php?folder=' . $encodedName . '" class="folder-card" style="display: block;">
-                <div class="folder-icon"><span class="glyphicon glyphicon-folder-open"></span></div>
-                <div class="folder-name">' . htmlspecialchars($displayName) . '</div>
-                <div class="folder-location">uploads/' . htmlspecialchars($folderName) . '</div>
-              </a>
-            </div>
-          ';
-        }
-      }
-    } else {
-      echo "<p>La carpeta uploads no existe o no es accesible.</p>";
-    }
-  ?>
-</div>
-<br>
-<br>
 </div>
 
 

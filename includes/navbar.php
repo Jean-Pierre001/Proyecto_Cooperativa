@@ -12,7 +12,7 @@ include 'modals/profile_modal.php';
   <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
     <div class="container-fluid">
       <div class="navbar-header">
-        <img src="assets/images/consejologo.png" alt="ERROR" style="height:50px;">
+          <a class="navbar-brand brand-coop" href="#">Cooperativa De Trabajo Ltda</a>
         <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#mainNavbar">
           <span class="icon-bar"></span>
           <span class="icon-bar"></span>

@@ -45,12 +45,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         // Crear carpeta para archivos
         $base_folder_name = sanitizeFolderName($name);
         $folder_name = $base_folder_name;
-        $target_dir = "../uploads/$work_site/$folder_name/";
+        $target_dir = "../uploads/$folder_name/";
         $counter = 1;
 
         while (file_exists($target_dir)) {
             $folder_name = $base_folder_name . "($counter)";
-            $target_dir = "../uploads/$work_site/$folder_name/";
+            $target_dir = "../uploads/$folder_name/";
             $counter++;
         }
 
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     $file_path = $target_dir . $new_file_name;
 
                     if (move_uploaded_file($tmp_name, $file_path)) {
-                        $rel_path = "$work_site/$folder_name/$new_file_name";
+                        $rel_path = "$folder_name/$new_file_name";
 
                         $insertDoc = $pdo->prepare("INSERT INTO member_documents (member_id, file_path) VALUES (:member_id, :file_path)");
                         $insertDoc->execute([
