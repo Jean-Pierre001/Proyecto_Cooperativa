@@ -231,7 +231,6 @@ $members = $stmt->fetchAll();
 </div>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
 
 <script>
   // Seleccionar/deseleccionar todos
@@ -296,23 +295,23 @@ $members = $stmt->fetchAll();
     fetch('members_back/getDocuments.php?member_id=' + member.id)
       .then(response => response.json())
       .then(data => {
-        data.forEach((doc, index) => {
-        // Crear un ID único para el modal preview basado en memberId e índice del documento
-        const idModal = `modalPreview_${memberId}_${index}`;
+        if (!Array.isArray(data) || data.length === 0) {
+          docsDiv.innerHTML = '<p class="text-muted">Este socio no tiene documentos cargados.</p>';
+          return;
+        }
+        let html = '<ul style="list-style:none; padding-left:0;">';
+        data.forEach(doc => {
+          html += `
+            <li style="margin-bottom: 8px;">
+              <a href="uploads/${doc.file_path}" target="_blank">${doc.file_path}</a>
+              <label style="margin-left: 10px;">
+                <input type="checkbox" name="delete_docs[]" value="${doc.id}"> Eliminar
+              </label>
+            </li>
+          `;
+        });
 
-        html += `<tr>
-          <td>${doc.document_type ? doc.document_type + ': ' : ''}${doc.file_path}</td>
-          <td>
-            <button class="btn btn-sm btn-info" onclick="abrirModalPreview('${doc.file_path}', '${idModal}', ${memberId})">
-              <i class="bi bi-eye"></i> Vista previa
-            </button>
-            <a href="uploads/${doc.file_path}" download class="btn btn-sm btn-primary">
-              <i class="bi bi-download"></i> Descargar
-            </a>
-          </td>
-        </tr>`;
-       });
-        html += '</ul>';
+        html += '</tbody></table>';
         docsDiv.innerHTML = html;
       })
       .catch(() => {
@@ -358,8 +357,7 @@ $members = $stmt->fetchAll();
     });
 }
 
-function abrirModalPreview(nombreArchivo, idModal, memberId) {
-  // Evita crear el modal si ya existe
+  function abrirModalPreview(nombreArchivo, idModal, memberId) {
   if (document.getElementById(idModal)) {
     $('#' + idModal).modal('show');
     return;
@@ -368,7 +366,7 @@ function abrirModalPreview(nombreArchivo, idModal, memberId) {
   const extension = nombreArchivo.split('.').pop().toLowerCase();
   let contenido = '';
 
-  const rutaArchivo = 'uploads/' + nombreArchivo; // Ajusta si tu carpeta es otra
+  const rutaArchivo = 'uploads/' + nombreArchivo;
 
   if (['jpg','jpeg','png','gif','webp'].includes(extension)) {
     contenido = `<img src="${rutaArchivo}" style="max-width:100%; max-height:80vh;" class="img-thumbnail" alt="Imagen">`;
@@ -409,14 +407,11 @@ function abrirModalPreview(nombreArchivo, idModal, memberId) {
     </div>
   </div>`;
 
-  // Agrega el modal al contenedor y lo muestra
   $('#contenedorModalesPreview').append(modalHtml);
   $('#' + idModal).modal('show');
 }
 
-
 </script>
-
 
 <?php include 'includes/footer.php'; ?>
 <?php include 'includes/scripts.php'; ?>
