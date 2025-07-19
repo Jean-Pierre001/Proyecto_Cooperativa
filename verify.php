@@ -25,7 +25,7 @@ function contar_intentos_fallidos($ip, $pdo) {
 }
 
 if (isset($_POST['login'])) {
-    $email = trim($_POST['email']);
+    $first_name = trim($_POST['first_name']);
     $password = trim($_POST['password']);
     $ip = $_SERVER['REMOTE_ADDR'];
 
@@ -54,8 +54,8 @@ if (isset($_POST['login'])) {
     }
 
     try {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email LIMIT 1");
-        $stmt->execute(['email' => $email]);
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE first_name = :first_name LIMIT 1");
+        $stmt->execute(['first_name' => $first_name]);
         $user = $stmt->fetch();
 
         if ($user && password_verify($password, $user['password'])) {

@@ -44,7 +44,7 @@
 
       <form action="verify.php" method="POST" novalidate>
         <div class="form-group has-feedback">
-          <input type="email" class="form-control input-lg" name="email" placeholder="Correo" required maxlength="100" autocomplete="username">
+            <input type="text" class="form-control input-lg" name="first_name" placeholder="nombre" required maxlength="100" autocomplete="username">
           <span class="glyphicon glyphicon-envelope form-control-feedback"></span>
         </div>
         <div class="form-group has-feedback">
