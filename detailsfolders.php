@@ -1,12 +1,17 @@
 <?php
 // --- INICIO ---
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete']) && isset($_POST['folder']) && isset($_POST['type'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' 
+    && isset($_POST['delete']) 
+    && isset($_POST['folder']) 
+    && isset($_POST['type']) 
+    && !isset($_POST['bulk_delete']) 
+    && !isset($_POST['bulk_download'])
+) {
     $folder = trim($_POST['folder'], '/\\');
     $item_to_delete = basename($_POST['delete']);
     $type = $_POST['type'];
 
-    // Calcular base_dir y target_path, ya SIN uploads
     if (strpos($folder, 'trash/') === 0) {
         $base_dir = realpath(__DIR__ . '/trash');
         $folder_subpath = substr($folder, strlen('trash/'));
@@ -27,8 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete']) && isset($_
             $file_path = $target_path . DIRECTORY_SEPARATOR . $item_to_delete;
             if (is_file($file_path)) {
                 if (unlink($file_path)) {
-                    header("Location: detailsfolders.php?folder=" . urlencode($folder) . "&msg=Archivo+eliminado+correctamente");
-                    exit;
+                    $msg = "Archivo eliminado correctamente.";
                 } else {
                     $msg_error = "Error al eliminar el archivo <strong>$item_to_delete</strong>.";
                 }
@@ -38,10 +42,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete']) && isset($_
         } elseif ($type === 'folder') {
             $folder_path = $target_path . DIRECTORY_SEPARATOR . $item_to_delete;
             if (is_dir($folder_path)) {
-                // Intentar eliminar solo si está vacía:
                 if (@rmdir($folder_path)) {
-                    header("Location: detailsfolders.php?folder=" . urlencode($folder) . "&msg=Carpeta+eliminada+correctamente");
-                    exit;
+                    $msg = "Carpeta eliminada correctamente.";
                 } else {
                     $msg_error = "No se pudo eliminar la carpeta (¿está vacía?).";
                 }
@@ -51,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete']) && isset($_
         }
     }
 }
+
 
 
 $folder = isset($_GET['folder']) ? $_GET['folder'] : '';
@@ -99,6 +102,67 @@ function renombrar_carpeta($target_path, $nombre_viejo, $nombre_nuevo) {
         return "Error al renombrar la carpeta.";
     }
 }
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // Manejo de eliminación múltiple (bulk delete)
+    if (isset($_POST['bulk_delete']) && !empty($_POST['selected_items'])) {
+        $errors_delete = [];
+        $success_delete = [];
+
+        foreach ($_POST['selected_items'] as $item) {
+            // $item tiene formato tipo:path, ejemplo: "file:folder1/archivo.txt" o "folder:folder1/subcarpeta"
+            list($type, $rel_path) = explode(':', $item, 2);
+
+            // Normalizar paths y calcular ruta absoluta
+            $rel_path = trim($rel_path, '/\\');
+
+            if (strpos($rel_path, 'trash/') === 0) {
+                $base_dir_bulk = realpath(__DIR__ . '/trash');
+                $folder_subpath_bulk = substr($rel_path, strlen('trash/'));
+                $abs_path = realpath($base_dir_bulk . DIRECTORY_SEPARATOR . $folder_subpath_bulk);
+            } else {
+                $base_dir_bulk = realpath(__DIR__ . '/folders');
+                $folder_subpath_bulk = $rel_path;
+                $abs_path = realpath($base_dir_bulk . DIRECTORY_SEPARATOR . $folder_subpath_bulk);
+            }
+
+            // Validar que abs_path esté dentro del base_dir para seguridad
+            if (!$abs_path || strncmp($abs_path, $base_dir_bulk, strlen($base_dir_bulk)) !== 0) {
+                $errors_delete[] = "$item: Ruta no permitida";
+                continue;
+            }
+
+            if ($type === 'file') {
+                if (is_file($abs_path) && unlink($abs_path)) {
+                    $success_delete[] = $rel_path;
+                } else {
+                    $errors_delete[] = "$rel_path: No se pudo eliminar archivo.";
+                }
+            } elseif ($type === 'folder') {
+                if (is_dir($abs_path)) {
+                    if (@rmdir($abs_path)) {
+                        $success_delete[] = $rel_path;
+                    } else {
+                        $errors_delete[] = "$rel_path: Carpeta no vacía o no se pudo eliminar.";
+                    }
+                } else {
+                    $errors_delete[] = "$rel_path: Carpeta no encontrada.";
+                }
+            }
+        }
+
+        // Preparar mensajes para mostrar luego
+        if (count($success_delete) > 0) {
+            $msg = "Se eliminaron: <strong>" . implode(", ", $success_delete) . "</strong>.";
+        }
+        if (count($errors_delete) > 0) {
+            $msg_error = "Errores al eliminar: <strong>" . implode(", ", $errors_delete) . "</strong>.";
+        }
+    }
+}
+
+
 
 $msg = '';
 $msg_error = '';
@@ -271,6 +335,15 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
     </div>
     <button type="submit" name="upload" class="btn btn-primary">Subir Archivo(s)</button>
   </form>
+  <form method="post" action="detailsfolders.php?folder=<?= urlencode($folder) ?>">
+  <!-- Aquí va todo el listado de carpetas y archivos con checkboxes -->
+
+  <!-- Botones para eliminar o descargar -->
+  <div style="margin-top:20px;">
+    <button type="submit" name="bulk_delete" class="btn btn-danger" onclick="return confirm('¿Eliminar todos los seleccionados?');">Eliminar seleccionados</button>
+    <button type="submit" name="bulk_download" class="btn btn-primary">Descargar seleccionados</button>
+  </div>
+
   <?php
   $items = scandir($target_path);
   $folders = [];
@@ -290,6 +363,7 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
     $folder_url = ($folder ? $folder . '/' : '') . $folder_name;
 ?>
   <div class="folder-card" style="position: relative;">
+     <input type="checkbox" class="select-item" name="selected_items[]" value="folder:<?= htmlspecialchars($folder_url) ?>" style="position:absolute; top:8px; left:8px; z-index:10;">
     <a href="detailsfolders.php?folder=<?= urlencode($folder_url) ?>" style="color: inherit; text-decoration: none; flex-grow: 1;">
       <div class="folder-icon"><span class="glyphicon glyphicon-folder-open"></span></div>
       <div class="folder-name"><?= htmlspecialchars($folder_name) ?></div>
@@ -358,6 +432,7 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
         $modal_id = 'modal_' . md5($file_name);
       ?>
       <div class="folder-card" data-toggle="modal" data-target="#<?= $modal_id ?>">
+        <input type="checkbox" class="select-item" name="selected_items[]" value="file:<?= htmlspecialchars(($folder ? $folder . '/' : '') . $file_name) ?>" style="position:absolute; top:8px; left:8px; z-index:10;" onclick="event.stopPropagation();">
         <div class="folder-icon"><span class="glyphicon glyphicon-file"></span></div>
         <div class="folder-name"><?= htmlspecialchars($file_name) ?></div>
       </div>
@@ -371,5 +446,45 @@ if (isset($_POST['upload']) && isset($_FILES['file'])) {
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const btnDownload = document.querySelector('button[name="bulk_download"]');
+  const form = btnDownload.closest('form');
+
+  btnDownload.addEventListener('click', function(e) {
+    e.preventDefault();
+
+    // Recoger los archivos seleccionados (solo los tipo "file")
+    const selectedCheckboxes = Array.from(document.querySelectorAll('input.select-item[name="selected_items[]"]:checked'));
+    const files = selectedCheckboxes
+      .map(cb => cb.value)
+      .filter(v => v.startsWith('file:'))
+      .map(v => v.substring(5)); // quitar prefijo "file:"
+
+    if (files.length === 0) {
+      alert('No hay archivos seleccionados para descargar.');
+      return;
+    }
+
+    const folder = <?= json_encode($folder) ?>;
+
+    // Descargar cada archivo con un retardo para evitar saturar al navegador
+    let delay = 0;
+    files.forEach(file => {
+      setTimeout(() => {
+        const a = document.createElement('a');
+        a.href = `download_file.php?folder=${encodeURIComponent(folder)}&file=${encodeURIComponent(file)}`;
+        a.download = file;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }, delay);
+      delay += 1000; // 1 segundo entre descargas para asegurar que el navegador procese bien
+    });
+  });
+});
+</script>
+
 
 </html>
