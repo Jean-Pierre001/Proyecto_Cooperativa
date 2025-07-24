@@ -11,11 +11,10 @@ function sanitizeFolderName($name) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // Actualizar socio
-        $stmt = $pdo->prepare("UPDATE members SET member_number = :member_number, name = :name, cuil = :cuil, phone = :phone, email = :email, address = :address, entry_date = :entry_date, exit_date = :exit_date, status = :status, work_site = :work_site WHERE id = :id");
+        $stmt = $pdo->prepare("UPDATE members SET name = :name, cuil = :cuil, phone = :phone, email = :email, address = :address, entry_date = :entry_date, exit_date = :exit_date, status = :status, work_site = :work_site WHERE id = :id");
 
         $stmt->execute([
             ':id' => $_POST['id'],
-            ':member_number' => $_POST['member_number'],
             ':name' => $_POST['name'],
             ':cuil' => $_POST['cuil'],
             ':phone' => $_POST['phone'],

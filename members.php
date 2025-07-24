@@ -231,6 +231,46 @@ $members = $stmt->fetchAll();
 </div>
 
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const memberInput = document.getElementById('member_number');
+  const feedback = document.getElementById('memberNumberFeedback');
+  const formCreateMember = document.querySelector('#modalCreateMember form');
+
+  memberInput.addEventListener('input', function () {
+    const number = memberInput.value;
+
+    if (!number) {
+      feedback.style.display = 'none';
+      return;
+    }
+
+    fetch(`members_back/check_member_number.php?member_number=${number}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.exists) {
+          feedback.textContent = 'Este número de socio ya está registrado.';
+          feedback.style.display = 'block';
+        } else {
+          feedback.style.display = 'none';
+        }
+      })
+      .catch(error => {
+        console.error('Error al verificar el número:', error);
+      });
+  });
+
+  // Bloquear submit si número existe
+  formCreateMember.addEventListener('submit', function (e) {
+    if (feedback.style.display === 'block') {
+      e.preventDefault();
+      alert('No se puede guardar. El número de socio ya está registrado.');
+      memberInput.focus();
+    }
+  });
+});
+
+</script>
 
 <script>
   // Seleccionar/deseleccionar todos
