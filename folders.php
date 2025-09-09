@@ -198,7 +198,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['new_folder'])) {
   <?php endif; ?>
 
   <!-- Lista de carpetas -->
-  <h3 style="margin-top: 50px;">Carpetas Personalizadas</h3>
   <div class="folder-grid">
     <?php
       $buscar = $_GET['buscar'] ?? '';

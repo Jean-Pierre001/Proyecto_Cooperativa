@@ -41,6 +41,7 @@
     ?>
     <div class="login-box-body">
       <h3 class="login-box-msg" style="font-weight:700; margin-bottom: 20px;">Iniciar sesión para acceder al sistema</h3>
+      </center> <p>ahora debe iniciar sesion con su nombre de usuario</p> </center>
 
       <form action="verify.php" method="POST" novalidate>
         <div class="form-group has-feedback">

@@ -43,6 +43,8 @@ if ($filterWorkSite !== '') {
     $params[':work_site'] = $filterWorkSite;
 }
 
+$sql .= " ORDER BY member_number ASC ";
+
 $stmt = $pdo->prepare($sql);  // <-- AHORA sí con todo correcto
 $stmt->execute($params);
 $members = $stmt->fetchAll();
